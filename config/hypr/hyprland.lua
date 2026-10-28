@@ -1,0 +1,256 @@
+-- hopparch -- Hyprland config (Lua, Hyprland >= 0.55). Reload: SUPER+SHIFT+R
+
+local mod      = "SUPER"
+-- -1 = one kitty process for all windows: ~15 MB per extra window instead of ~160
+local terminal = "kitty -1"
+local launcher = "fuzzel"
+local browser  = "firefox"
+local files    = "thunar"
+local scripts  = os.getenv("HOME") .. "/.config/scripts"
+
+
+hl.on("hyprland.start", function()
+  -- ~/Vault passphrase prompt. Quiet until the vault exists (~/.cipher).
+  hl.exec_cmd(scripts .. "/unlock-vault.sh")
+  -- the top bar; its top-left icon shows/hides the mouse bar (waybar/mouse.jsonc)
+  hl.exec_cmd("waybar")
+  -- notifications (screenshot saved, app messages)
+  hl.exec_cmd("mako")
+  -- lock before any sleep; laptops sleep after 10 min idle (hypridle.conf)
+  hl.exec_cmd("hypridle")
+  -- clipboard history for SUPER+CTRL+V: record every copy, text and images.
+  -- Wiped first at every login, so nothing copied lasts past a restart.
+  hl.exec_cmd("cliphist wipe; wl-paste --type text --watch cliphist store & wl-paste --type image --watch cliphist store")
+  -- picture at ~/.config/hopparch/wallpaper, if there is one. Otherwise black.
+  hl.exec_cmd(scripts .. "/wallpaper.sh")
+  -- Steam's games only under "Games" in SUPER+D, not in the main list
+  hl.exec_cmd(scripts .. "/games.sh hide")
+  -- Mullvad's app, only when its own "Launch app on start-up" is on (that
+  -- writes this autostart file; Hyprland doesn't read autostart by itself).
+  -- With "Start minimized" it goes straight to the bar's tray.
+  hl.exec_cmd("[ -e ~/.config/autostart/mullvad-vpn.desktop ] && mullvad-vpn")
+  -- X11 apps draw at full resolution (xwayland.force_zero_scaling below), so
+  -- Steam scales its own UI to the first monitor's scale instead of being
+  -- stretched blurry. Read here: monitors exist only once Hyprland runs.
+  local p = io.popen("hyprctl monitors -j | jq -r '.[0].scale'")
+  local scale = p and tonumber(p:read("*l"))
+  if p then p:close() end
+  if scale and scale ~= 1 then hl.env("STEAM_FORCE_DESKTOPUI_SCALING", tostring(scale)) end
+end)
+
+
+-- NVIDIA drawing the screen: video decoding and GLX go to NVIDIA. The GPU
+-- Hyprland draws on is the one with a laptop's built-in panel, else the
+-- firmware's boot GPU (aquamarine's rule). Not on hybrid laptops drawing on
+-- the iGPU: there these would break video decoding (VA-API). Checked at every
+-- start, so a changed card needs nothing redone.
+local function nvidia_draws_the_screen()
+  local p = io.popen("grep -l '^connected$' /sys/class/drm/card*-eDP-*/status /sys/class/drm/card*-LVDS-*/status" ..
+                     " /sys/class/drm/card*-DSI-*/status 2>/dev/null; grep -l '^1$' /sys/bus/pci/devices/*/boot_vga 2>/dev/null")
+  local first = p and p:read("*l")
+  if p then p:close() end
+  if not first then return false end
+  local card = first:match("^/sys/class/drm/(card%d+)%-")
+  local f = io.open(card and ("/sys/class/drm/" .. card .. "/device/vendor") or (first:gsub("boot_vga$", "vendor")))
+  local vendor = f and f:read("*l")
+  if f then f:close() end
+  local drm = io.open("/sys/module/nvidia_drm")
+  if drm then drm:close() end
+  return vendor == "0x10de" and drm ~= nil
+end
+if nvidia_draws_the_screen() then
+  hl.env("LIBVA_DRIVER_NAME", "nvidia")
+  hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+end
+
+
+-- any monitor: highest refresh rate, automatic scale
+hl.monitor({ output = "", mode = "highrr", position = "auto", scale = "auto" })
+
+
+-- plain look: nothing that costs GPU time
+hl.config({
+  general = {
+    gaps_in = 4,
+    gaps_out = 8,
+    border_size = 2,
+    layout = "dwindle",
+    col = {
+      -- 0xyc: cream = focused, dark grey = the rest
+      active_border   = "rgba(e8e4dcff)",
+      inactive_border = "rgba(3a3a38ff)",
+    },
+  },
+  decoration = {
+    rounding = 0,
+    blur   = { enabled = false },
+    shadow = { enabled = false },
+  },
+  animations = { enabled = false },
+  input = {
+    kb_layout = "us",
+    -- held keys repeat after 0.3 s, 50x per second (defaults: 0.6 s, 25x)
+    repeat_delay = 300,
+    repeat_rate = 50,
+    -- focus follows clicks and keys only, never the mouse passing by
+    follow_mouse = 0,
+  },
+  -- X11 apps (Steam, games) at the screen's real resolution, not drawn small
+  -- and stretched by the monitor scale. Steam's own scale: see hyprland.start.
+  xwayland = { force_zero_scaling = true },
+  -- no "Hyprland updated" news window, no donation reminder
+  ecosystem = {
+    no_update_news = true,
+    no_donation_nag = true,
+  },
+  misc = {
+    disable_hyprland_logo = true,
+    -- the built-in jokes ("Hyper".replace...) are a fixed list inside Hyprland.
+    -- there is no custom phrase. This turns that line off.
+    disable_splash_rendering = true,
+    force_default_wallpaper = 0,
+    background_color = "rgba(000000ff)",
+  },
+})
+
+
+-- apps
+hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal), { description = "Terminal" })
+hl.bind(mod .. " + D",      hl.dsp.exec_cmd(launcher), { description = "Launcher (apps, settings)" })
+hl.bind(mod .. " + B",      hl.dsp.exec_cmd(browser), { description = "Browser" })
+hl.bind(mod .. " + F",      hl.dsp.exec_cmd(files), { description = "File manager" })
+-- btop, almost the whole screen. btop.sh picks the cell count from this monitor.
+hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd(scripts .. "/btop.sh"),
+  { description = "System monitor (btop)" })
+hl.bind(mod .. " + Q",      hl.dsp.window.close(), { description = "Close window" })
+hl.bind(mod .. " + M",      hl.dsp.window.fullscreen({ mode = "fullscreen" }), { description = "Fullscreen" })
+hl.bind(mod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"), { description = "Reload Hyprland config" })
+-- power menu from the keyboard (the bar's power icon opens the same one)
+hl.bind(mod .. " + SHIFT + E", hl.dsp.exec_cmd(scripts .. "/power-menu.sh"), { description = "Power menu" })
+-- lock the screen (hyprlock.conf: black, one line of text, password)
+hl.bind(mod .. " + SHIFT + Escape", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), { description = "Lock screen" })
+
+-- screenshots: path of the saved file is copied (screenshot.sh)
+hl.bind(mod .. " + SHIFT + S",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh region"), { description = "Screenshot: region" })
+hl.bind(mod .. " + SHIFT + CTRL + S", hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
+-- clipboard history
+hl.bind(mod .. " + CTRL + V", hl.dsp.exec_cmd(scripts .. "/clipboard.sh"), { description = "Clipboard history" })
+-- kaomoji: copied, and typed at the cursor
+hl.bind("CTRL + " .. mod .. " + period", hl.dsp.exec_cmd(scripts .. "/kaomoji.sh"),
+  { description = "Kaomoji" })
+
+-- volume keys: 5% steps up to 100%; with SUPER held up to 150% (software
+-- boost, can distort). locked = also work on the lock screen
+local vol = "wpctl set-volume "
+local sink = " @DEFAULT_AUDIO_SINK@ "
+local function media(d) return { locked = true, repeating = true, description = d } end
+hl.bind("XF86AudioRaiseVolume",            hl.dsp.exec_cmd(vol .. "-l 1.0" .. sink .. "5%+"), media("Volume up"))
+hl.bind(mod .. " + XF86AudioRaiseVolume",  hl.dsp.exec_cmd(vol .. "-l 1.5" .. sink .. "5%+"), media("Volume up, up to 150%"))
+hl.bind("XF86AudioLowerVolume",            hl.dsp.exec_cmd(vol .. sink .. "5%-"), media("Volume down"))
+hl.bind(mod .. " + XF86AudioLowerVolume",  hl.dsp.exec_cmd(vol .. sink .. "5%-"), media("Volume down"))
+-- the same without volume keys: SUPER+F9 down, SUPER+F10 up to 150%
+hl.bind(mod .. " + F9",                    hl.dsp.exec_cmd(vol .. sink .. "5%-"), media("Volume down"))
+hl.bind(mod .. " + F10",                   hl.dsp.exec_cmd(vol .. "-l 1.5" .. sink .. "5%+"), media("Volume up, up to 150%"))
+hl.bind("XF86AudioMute",    hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),   { locked = true, description = "Mute" })
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, description = "Mute microphone" })
+-- brightness keys: 5% steps, never below 1% (0 = a black screen on some laptops).
+-- brightness.sh picks the device that is wired to the panel.
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd(scripts .. "/brightness.sh up"), media("Brightness up"))
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(scripts .. "/brightness.sh down"), media("Brightness down"))
+
+-- apps asking to maximize themselves (firefox does) are ignored; otherwise
+-- every window opened after them inherits "maximized" and covers the rest
+hl.window_rule({
+  name  = "no-self-maximize",
+  match = { class = ".*" },
+  suppress_event = "maximize",
+})
+
+-- btop floats above everything, on every workspace, in the middle
+hl.window_rule({
+  name   = "btop",
+  match  = { class = "^(btop)$" },
+  float  = true,
+  pin    = true,
+  center = true,
+})
+
+
+-- windows: hjkl = focus, +SHIFT = move, +CTRL = resize (hold)
+local step = 40
+for _, d in ipairs({
+  { "H", "left",  -step, 0 },
+  { "J", "down",  0,  step },
+  { "K", "up",    0, -step },
+  { "L", "right", step,  0 },
+}) do
+  local key, dir, rx, ry = d[1], d[2], d[3], d[4]
+  hl.bind(mod .. " + " .. key,           hl.dsp.focus({ direction = dir }),
+          { description = "Focus " .. dir })
+  hl.bind(mod .. " + SHIFT + " .. key,   hl.dsp.window.move({ direction = dir }),
+          { description = "Move window " .. dir })
+  hl.bind(mod .. " + CTRL + " .. key,
+          hl.dsp.window.resize({ x = rx, y = ry, relative = true }),
+          { repeating = true, description = "Resize window " .. dir .. " (hold)" })
+end
+
+-- mouse: SUPER + left drag moves, SUPER + right drag resizes
+hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true, description = "Move window (drag)" })
+hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Resize window (drag)" })
+
+
+-- workspaces 1-9: go there, +SHIFT sends the window there
+for i = 1, 9 do
+  hl.bind(mod .. " + " .. i,         hl.dsp.focus({ workspace = i }),
+          { description = "Go to workspace " .. i })
+  hl.bind(mod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }),
+          { description = "Send window to workspace " .. i })
+end
+
+-- every open window in a list, the last used first: pick one to go there
+-- (the mouse bar's window button opens the same list)
+hl.bind(mod .. " + Tab", hl.dsp.exec_cmd(scripts .. "/windows.sh"), { description = "Windows list" })
+
+-- scratchpad: a hidden workspace shown over the current one. SUPER+SHIFT+P
+-- shows/hides it; whenever it is empty, showing it opens a terminal in it.
+-- SUPER+CTRL+P puts the focused window there (SUPER+SHIFT+1-9 takes it back).
+-- The terminal is found by its class: with kitty -1 the window belongs to the
+-- kitty already running, so Hyprland can't tell it was started for here.
+hl.workspace_rule({ workspace = "special:scratch", on_created_empty = terminal .. " --class scratchpad" })
+hl.window_rule({
+  name      = "scratchpad",
+  match     = { class = "^(scratchpad)$" },
+  workspace = "special:scratch silent",
+})
+hl.bind(mod .. " + SHIFT + P", hl.dsp.workspace.toggle_special("scratch"), { description = "Scratchpad show/hide" })
+hl.bind(mod .. " + CTRL + P", hl.dsp.window.move({ workspace = "special:scratch", follow = false }),
+        { description = "Send window to the scratchpad" })
+
+
+-- cheatsheet: every bind above with its description, the nvim keys, fish aliases
+hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(scripts .. "/cheatsheet.sh"), { description = "This cheatsheet" })
+
+
+-- what the profile adds (full: animations, blur, rounding, Steam rule). Lives in
+-- profiles/full/config/hypr/profile.lua; minimal has no such file, so this
+-- config alone is the minimal look. pcall: a broken profile file must never
+-- take the rest of the config down. Its error is shown on screen (Hyprland's
+-- own notification, no mako needed) and kept with the time in
+-- ~/.local/state/hopparch/hyprland-errors.log.
+local profile = os.getenv("HOME") .. "/.config/hypr/profile.lua"
+local exists = io.open(profile)
+if exists then
+  exists:close()
+  local ok, err = pcall(dofile, profile)
+  if not ok then
+    local log = io.open(os.getenv("HOME") .. "/.local/state/hopparch/hyprland-errors.log", "a")
+    if log then
+      log:write(os.date("%Y-%m-%d %H:%M:%S"), "  ", tostring(err), "\n")
+      log:close()
+    end
+    if hl.notification then
+      pcall(hl.notification.create, { text = "profile.lua failed, the profile look is off: " .. tostring(err),
+                                      timeout = 20000, icon = 3 })
+    end
+  end
+end

@@ -1,0 +1,5 @@
+# Games list (SUPER+D > Games): a kaomoji per Steam game, optionally a shorter
+# name. Columns split by TABS (kaomoji have spaces): <appid> <kaomoji> [name]
+# appid = the number in the game's Steam store URL. Unlisted games: (•_•).
+# example (remove the #):
+# 0000000	(•_•)	Short name

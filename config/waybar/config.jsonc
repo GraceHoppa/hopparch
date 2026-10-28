@@ -1,0 +1,82 @@
+// hopparch top bar: mouse-bar toggle, volume, stats, tray, clock, power.
+{
+  "layer": "top",
+  "position": "top",
+  "height": 26,
+  // stats.jsonc defines "group/stats" (CPU, GPU, RAM); the minimal profile empties it
+  "include": ["~/.config/waybar/stats.jsonc"],
+  "modules-left": ["custom/mousebar", "wireplumber", "group/stats", "custom/wifi"],
+  "modules-center": ["wlr/taskbar"],
+  "modules-right": ["tray", "clock", "custom/ecoflow", "battery", "custom/power"],
+
+  // open windows: icon only, one row. Middle click closes.
+  "wlr/taskbar": {
+    "format": "{icon}",
+    "icon-size": 16,
+    "tooltip-format": "{title}",
+    "on-click": "activate",
+    "on-click-middle": "close"
+  },
+
+  // shows/hides the mouse bar (mouse.jsonc) on the left edge. It is started by
+  // Hyprland, not by this bar, so reloading this bar leaves it alone. ^ and
+  // [.] in the pattern: pkill must not match the shell running this very line.
+  "custom/mousebar": {
+    "format": "󰍽",
+    "tooltip-format": "Mouse bar",
+    "on-click": "pkill -f '^waybar -c [^ ]*/mouse[.]jsonc' || hyprctl dispatch 'hl.dsp.exec_cmd(\"waybar -c ~/.config/waybar/mouse.jsonc -s ~/.config/waybar/mouse.css\")'"
+  },
+
+  // click = mute, scroll = 5% steps (up to 100%; SUPER+volume key goes to 150%)
+  "wireplumber": {
+    "format": "vol {volume}%",
+    "format-muted": "vol muted",
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "scroll-step": 5,
+    "max-volume": 100,
+    "tooltip": false
+  },
+
+  // icons of apps running in the background (Mullvad, Steam...). Left click
+  // opens the app, right click its menu.
+  "tray": {
+    "icon-size": 16,
+    "spacing": 8
+  },
+
+  "clock": {
+    "format": "{:%a %d-%m-%Y  %H:%M}",
+    "tooltip": false
+  },
+
+  // next to RAM. No wireless device: stats.sh prints nothing and this disappears.
+  "custom/wifi": {
+    "exec": "$HOME/.config/scripts/stats.sh wifi",
+    "return-type": "json",
+    "interval": 5
+  },
+
+  // EcoFlow power station from EcoFlow's cloud, once a minute. Hidden until
+  // ~/Vault/ecoflow/keys exists and the vault is unlocked. Read only.
+  "custom/ecoflow": {
+    "exec": "$HOME/.config/scripts/ecoflow.sh",
+    "return-type": "json",
+    "interval": 60
+  },
+
+  // hidden when there is no battery. Lightning only while it is actually charging.
+  "battery": {
+    "interval": 10,
+    "format": "{capacity}%",
+    "format-charging": " {capacity}%",
+    "format-full": "{capacity}%",
+    "format-plugged": "{capacity}%",
+    "tooltip": false
+  },
+
+  "custom/power": {
+    "format": "⏻",
+    "on-click": "$HOME/.config/scripts/power-menu.sh",
+    "tooltip": false
+  }
+}
