@@ -15,7 +15,7 @@ iwctl station wlan0 connect "<network>"
 Then:
 
 ```bash
-curl -LO https://raw.githubusercontent.com/allextraszza1488/hopparch/main/install.sh
+curl -LO https://raw.githubusercontent.com/GraceHoppa/hopparch/main/install.sh
 bash install.sh
 ```
 

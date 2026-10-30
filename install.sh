@@ -23,7 +23,7 @@ TESTED_ARCHINSTALL="4.4 4.5"
 # config + credentials for archinstall; /tmp is RAM on the ISO
 WORK=/tmp/hopparch
 # where the new system clones hopparch from (override for testing)
-REPO_URL=${HOPPARCH_REPO:-https://github.com/allextraszza1488/hopparch.git}
+REPO_URL=${HOPPARCH_REPO:-https://github.com/GraceHoppa/hopparch.git}
 # which branch the new system gets (override for testing: HOPPARCH_BRANCH=next)
 REPO_BRANCH=${HOPPARCH_BRANCH:-main}
 
