@@ -5,4 +5,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # check.sh fakes mounts in a user namespace; Ubuntu's AppArmor blocks those by default.
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: bash dev/check.sh
