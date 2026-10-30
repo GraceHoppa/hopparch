@@ -1,5 +1,7 @@
 # hopparch
 
+[![checks](https://github.com/GraceHoppa/hopparch/actions/workflows/checks.yml/badge.svg)](https://github.com/GraceHoppa/hopparch/actions/workflows/checks.yml)
+
 A keyboard-first Arch Linux desktop. Hyprland, a top bar, and a small set of tools. One script from the Arch ISO. The same config on a laptop or a PC. The driver packages follow the hardware.
 
 ## Install
@@ -106,6 +108,28 @@ cd ~/hopparch && git pull && sudo ./setup.sh
 ```
 
 A file you edited is kept as `<file>.bak-<date>`, then replaced with the repo copy.
+
+## How it's tested
+
+- **`dev/check.sh`** runs in CI on every push, without root. It loads the installer's functions
+  with the system commands faked and walks the dangerous paths: 26 checks. For example:
+  - an EFI partition that won't mount is refused and nothing is formatted; one that already holds
+    files is kept
+  - saved Wi-Fi profiles are never deleted or created again; WPA3-only networks get SAE
+  - the EcoFlow keys never reach a command line, and the request signature matches EcoFlow's scheme
+- **Test VM.** Installs go into a QEMU VM (UEFI) from the Arch ISO before real hardware.
+  `dev/vm-check.sh` then reads the VM over SSH: Hyprland running with no config errors, the bar
+  and services up, configs that parse, failed services, errors in the log since boot.
+- **Real hardware.** It runs daily on my laptop.
+
+## Why it works this way
+
+- **It never partitions.** You make the partitions. The script formats only what you confirm, so
+  it can't eat the system next to it.
+- **Every update can be undone.** snap-pac takes a snapshot before and after each pacman run, and
+  grub-btrfs lists them in the boot menu. After a bad update, boot the snapshot before it.
+- **The hardware picks the drivers.** The scan reads the GPUs and the chassis instead of asking, so
+  one script fits a laptop and a PC.
 
 ## Tree
 
