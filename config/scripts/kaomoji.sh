@@ -1,5 +1,5 @@
 #!/bin/bash
-# Ctrl+Super+. Pick a kaomoji. It is copied, and typed where the cursor is.
+# Ctrl+Super+. Pick a kaomoji. It is copied; paste it with Ctrl+V.
 # The menu: your own ones first (~/.config/hopparch/kaomoji, one per line), then
 # the everyday set, then folders (▸) with more, then "+ add a kaomoji", which asks
 # for a new one (paste it with Ctrl+V) and adds it to your own list.
@@ -123,8 +123,5 @@ if [[ $choice == "$add" ]]; then
   exit 0
 fi
 
+# Copied only: you paste it where you want it (Ysaye's choice 10-31; it used to be typed too).
 printf '%s' "$choice" | wl-copy
-# The picker is still the focused window if we type immediately.
-sleep 0.1
-# No -d: wtype 0.4 rejects "-d 0" ("Invalid sleep time"), and 0 is its default anyway.
-command -v wtype >/dev/null && wtype -- "$choice" || true
