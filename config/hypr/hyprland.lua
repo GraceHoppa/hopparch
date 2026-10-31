@@ -135,7 +135,7 @@ hl.bind(mod .. " + SHIFT + S",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh
 hl.bind(mod .. " + SHIFT + CTRL + S", hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
 -- clipboard history
 hl.bind(mod .. " + CTRL + V", hl.dsp.exec_cmd(scripts .. "/clipboard.sh"), { description = "Clipboard history" })
--- kaomoji: copied, and typed at the cursor
+-- kaomoji: copied (paste with Ctrl+V); your own list first, folders, + add
 hl.bind("CTRL + " .. mod .. " + period", hl.dsp.exec_cmd(scripts .. "/kaomoji.sh"),
   { description = "Kaomoji" })
 
