@@ -122,7 +122,8 @@ hl.bind(mod .. " + F",      hl.dsp.exec_cmd(files), { description = "File manage
 -- btop, almost the whole screen. btop.sh picks the cell count from this monitor.
 hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd(scripts .. "/btop.sh"),
   { description = "System monitor (btop)" })
-hl.bind(mod .. " + Q",      hl.dsp.window.close(), { description = "Close window" })
+-- close.sh: closes the focused window, but never a game (full profile)
+hl.bind(mod .. " + Q",      hl.dsp.exec_cmd(scripts .. "/close.sh"), { description = "Close window (not a game)" })
 hl.bind(mod .. " + M",      hl.dsp.window.fullscreen({ mode = "fullscreen" }), { description = "Fullscreen" })
 hl.bind(mod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"), { description = "Reload Hyprland config" })
 -- power menu from the keyboard (the bar's power icon opens the same one)
