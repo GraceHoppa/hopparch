@@ -98,11 +98,16 @@ onscreen_keyboard() {
   say "On-screen keyboard: building wvkbd-deskintl $ver from the AUR"
   # what it needs to build and run, as the package itself lists it
   deps=$(awk '$1 == "depends" || $1 == "makedepends" {print $3}' "$tmp/wvkbd/.SRCINFO" | sed 's/[<>=].*//')
+  # A failed dependency install must not end setup (set -e): it only costs the keyboard.
   # shellcheck disable=SC2086 # one word per package
-  pacman -S --needed --noconfirm base-devel $deps >/dev/null
+  if ! pacman -S --needed --noconfirm base-devel $deps >/dev/null; then
+    warn "could not install wvkbd's build dependencies: no on-screen keyboard until the next ./setup.sh"
+    rm -rf "$tmp"; return 0
+  fi
   # the package lands in $tmp whatever the user's makepkg.conf says
   if (cd "$tmp/wvkbd" && runuser -u "$USER_" -- env HOME="$HOME_" PKGDEST="$tmp" PKGEXT=.pkg.tar.zst makepkg --noconfirm); then
-    pacman -U --noconfirm "$tmp"/wvkbd-deskintl-"$ver"-*.pkg.tar.zst
+    pacman -U --noconfirm "$tmp"/wvkbd-deskintl-"$ver"-*.pkg.tar.zst ||
+      warn "installing the built wvkbd failed: no on-screen keyboard until the next ./setup.sh"
   else
     warn "building wvkbd failed (see above): no on-screen keyboard until the next ./setup.sh"
   fi
