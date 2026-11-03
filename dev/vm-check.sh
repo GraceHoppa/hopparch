@@ -30,6 +30,9 @@ section "Services"
 for s in greetd NetworkManager; do
   printf '%-15s enabled=%s active=%s\n' "$s" "$(systemctl is-enabled $s 2>&1)" "$(systemctl is-active $s 2>&1)"
 done
+command -v ssh >/dev/null && echo "ok   ssh client" || echo "MISSING ssh"
+! pacman -Q steam >/dev/null 2>&1 || { command -v fusermount >/dev/null && echo "ok   fusermount (full)" || echo "MISSING fusermount (full)"; }
+[[ $(systemctl --user is-enabled ssh-agent.socket 2>&1) == enabled && $(fish -c 'echo $SSH_AUTH_SOCK') == "$XDG_RUNTIME_DIR/ssh-agent.socket" ]] && echo "ok   ssh-agent socket + fish env" || echo "BAD  ssh-agent"
 echo test | sudo -S -p "" ufw status verbose 2>/dev/null | grep -q 'deny (incoming)' && echo "ok   firewall: incoming blocked" || echo "BAD  firewall"
 [[ -f /etc/snapper/configs/root ]] && echo "ok   snapshots configured ($(echo test | sudo -S -p "" snapper -c root list 2>/dev/null | tail -n +3 | grep -vc current) kept)" || echo "BAD  no snapper config"
 echo "listening ports (only VM-dev sshd expected): $(echo test | sudo -S -p "" ss -tlnpH 2>/dev/null | grep -o 'users:(("[^"]*' | cut -d'"' -f2 | sort -u | xargs)"
