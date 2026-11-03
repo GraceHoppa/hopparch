@@ -141,3 +141,7 @@ A file you edited is kept as `<file>.bak-<date>`, then replaced with the repo co
 | `profiles/` | The **full** and **minimal** overlays. |
 | `system/` | greetd, systemd, reflector, makepkg. |
 | `dev/` | Checks and the test-VM helpers. Not installed. |
+
+Your own Hyprland binds and settings go in `~/.config/hypr/local.lua` (plain Lua, the
+same `hl.bind` / `hl.config` calls as `hyprland.lua`). hopparch never ships, syncs or
+overwrites that file, and it loads last, so it can override anything.
