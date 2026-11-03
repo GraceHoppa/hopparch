@@ -3,6 +3,7 @@
 # ~/.config and system/ into /.
 #   first install:  install.sh runs it inside the new system
 #   any time later: cd ~/hopparch && git pull && sudo ./setup.sh
+#   config only, no sudo: ~/.config/scripts/sync.sh
 #   switch profile: sudo ./setup.sh --profile=minimal   (or full; remembered
 #                   in ~/.config/hopparch/profile)
 # A config file you changed yourself is kept as <file>.bak-<date> before being
@@ -159,69 +160,10 @@ full_extras() {
 }
 
 # config/ with the profile's own files (profiles/<name>/config/) laid over it,
-# then copied into ~/.config
+# copied into ~/.config by the same script as a by-hand sync
 copy_config() {
   say "Config -> $HOME_/.config ($PROFILE profile)"
-  local tree
-  tree=$(mktemp -d)
-  cp -a config/. "$tree"/
-  if [[ -d profiles/$PROFILE/config ]]; then cp -a "profiles/$PROFILE/config/." "$tree"/; fi
-  copy_tree "$tree"
-  rm -rf "$tree"
-}
-
-# files in ~/.config that are yours to edit: the repo only seeds them
-USER_FILES="hopparch/lock-text hopparch/game-faces"
-
-copy_tree() {
-  local tree=$1 src rel dst mode
-  while IFS= read -r -d '' src; do
-    rel=${src#"$tree"/}
-    dst="$HOME_/.config/$rel"
-    runuser -u "$USER_" -- mkdir -p "$(dirname "$dst")" "$(dirname "$STATE/$rel")"
-    # yours once it exists: written only when missing, never updated or removed
-    if [[ " $USER_FILES " == *" $rel "* ]]; then
-      [[ -e $dst ]] || install -m 644 -o "$USER_" -g "$GROUP_" "$src" "$dst"
-      rm -f "$STATE/$rel"
-      continue
-    fi
-    # already up to date: don't touch it (apps watching it would reload)
-    if ! cmp -s "$src" "$dst" 2>/dev/null; then
-      # differs from what we installed last time = your edit, keep a copy
-      if [[ -f $dst ]] && ! cmp -s "$dst" "$STATE/$rel" 2>/dev/null; then
-        local bak="$dst.bak-$(date +%F-%H%M%S)"
-        cp -p "$dst" "$bak"
-        echo "  kept your version: $bak"
-      fi
-      mode=644
-      [[ -x $src ]] && mode=755
-      # write next to it, then rename over it: the file is never missing, even
-      # for a split second (Hyprland reloads the moment its config changes)
-      install -m "$mode" -o "$USER_" -g "$GROUP_" "$src" "$dst.hopparch-new"
-      mv -f "$dst.hopparch-new" "$dst"
-    fi
-    # remember what we installed, to recognise your edits next time
-    install -m 644 -o "$USER_" -g "$GROUP_" "$src" "$STATE/$rel"
-  done < <(find "$tree" -type f -print0)
-  # which profile this is, for the next ./setup.sh
-  echo "$PROFILE" | runuser -u "$USER_" -- tee "$PROFILE_FILE" >/dev/null
-
-  # files we installed earlier that are gone from the repo: remove them too,
-  # unless you edited them -- no leftovers piling up in ~/.config
-  [[ -d $STATE ]] || return 0
-  local old
-  while IFS= read -r -d '' old; do
-    rel=${old#"$STATE"/}
-    [[ -e $tree/$rel ]] && continue
-    dst="$HOME_/.config/$rel"
-    if [[ ! -e $dst ]] || cmp -s "$old" "$dst"; then
-      rm -f "$dst"
-      echo "  removed (no longer in hopparch): $dst"
-    else
-      echo "  no longer in hopparch, kept because you edited it: $dst"
-    fi
-    rm -f "$old"
-  done < <(find "$STATE" -type f -print0)
+  runuser -u "$USER_" -- env HOME="$HOME_" bash config/scripts/sync.sh --no-pull --repo="$PWD" --profile="$PROFILE"
 }
 
 # a same-named entry in ~/.local/share/applications overrides the system one
