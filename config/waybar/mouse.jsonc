@@ -15,7 +15,7 @@
   "modules-right": ["custom/prev", "custom/next"],
   "custom/apps": { "format": "󰀻", "tooltip-format": "Apps (SUPER+D)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"fuzzel\")'" },
   "custom/kbd": { "format": "󰌌", "tooltip-format": "On-screen keyboard", "on-click": "pkill --signal RTMIN -x wvkbd-deskintl || hyprctl dispatch 'hl.dsp.exec_cmd(\"wvkbd-deskintl -L 280\")'" },
-  "custom/scratch": { "format": "󰆍", "tooltip-format": "Scratchpad (SUPER+SHIFT+P)", "on-click": "hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"scratch\")'" },
+  "custom/scratch": { "format": "󰆍", "tooltip-format": "Scratchpad (SUPER+S)", "on-click": "hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"scratch\")'" },
   "custom/browser": { "format": "󰖟", "tooltip-format": "Browser (SUPER+B)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"firefox\")'" },
   "custom/settings": { "format": "󰒓", "tooltip-format": "Settings", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"$HOME/.config/scripts/settings.sh\")'" },
   "custom/windows": { "format": "󰖲", "tooltip-format": "Windows list (SUPER+Tab)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"$HOME/.config/scripts/windows.sh\")'" },

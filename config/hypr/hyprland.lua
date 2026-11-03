@@ -212,9 +212,9 @@ end
 -- (the mouse bar's window button opens the same list)
 hl.bind(mod .. " + Tab", hl.dsp.exec_cmd(scripts .. "/windows.sh"), { description = "Windows list" })
 
--- scratchpad: a hidden workspace shown over the current one. SUPER+SHIFT+P
+-- scratchpad: a hidden workspace shown over the current one. SUPER+S
 -- shows/hides it; whenever it is empty, showing it opens a terminal in it.
--- SUPER+CTRL+P puts the focused window there (SUPER+SHIFT+1-9 takes it back).
+-- SUPER+CTRL+S puts the focused window there (SUPER+SHIFT+1-9 takes it back).
 -- The terminal is found by its class: with kitty -1 the window belongs to the
 -- kitty already running, so Hyprland can't tell it was started for here.
 hl.workspace_rule({ workspace = "special:scratch", on_created_empty = terminal .. " --class scratchpad" })
@@ -223,8 +223,8 @@ hl.window_rule({
   match     = { class = "^(scratchpad)$" },
   workspace = "special:scratch silent",
 })
-hl.bind(mod .. " + SHIFT + P", hl.dsp.workspace.toggle_special("scratch"), { description = "Scratchpad show/hide" })
-hl.bind(mod .. " + CTRL + P", hl.dsp.window.move({ workspace = "special:scratch", follow = false }),
+hl.bind(mod .. " + S", hl.dsp.workspace.toggle_special("scratch"), { description = "Scratchpad show/hide" })
+hl.bind(mod .. " + CTRL + S", hl.dsp.window.move({ workspace = "special:scratch", follow = false }),
         { description = "Send window to the scratchpad" })
 
 
