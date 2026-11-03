@@ -1,9 +1,0 @@
-[Unit]
-Description=hopparch sync at login and every hour
-
-[Timer]
-OnStartupSec=2min
-OnUnitActiveSec=1h
-
-[Install]
-WantedBy=timers.target

@@ -2,8 +2,7 @@
 # hopparch sync -- the repo is the only place config is edited; this brings it
 # to this device. No sudo: pulls the repo (fast-forward only), copies config/
 # (+ the profile's) into ~/.config, reloads Hyprland if its config changed.
-#   any time:     ~/.config/scripts/sync.sh
-#   automatic:    hopparch-sync.timer, at login and every hour
+#   by hand:      ~/.config/scripts/sync.sh   (never runs on its own)
 #   setup.sh:     runs it with --no-pull for the config part
 # A file you edited in ~/.config is kept as <file>.bak-<date> and replaced:
 # move the change into the repo, or it is lost at the next sync.
@@ -98,11 +97,6 @@ if [[ -d $STATE ]]; then
     rm -f "$old"
   done < <(find "$STATE" -type f -print0)
 fi
-
-# the timer that runs this, on for good (a wants link, like systemctl enable)
-wants="$HOME/.config/systemd/user/timers.target.wants"
-mkdir -p "$wants"
-ln -sfn ../hopparch-sync.timer "$wants/hopparch-sync.timer"
 
 ((${#changed[@]})) && printf 'updated: %s\n' "${changed[@]}"
 
