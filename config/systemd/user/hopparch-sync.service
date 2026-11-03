@@ -1,0 +1,6 @@
+[Unit]
+Description=hopparch: pull the repo and bring its config into ~/.config
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/scripts/sync.sh
