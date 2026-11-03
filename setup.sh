@@ -53,7 +53,8 @@ packages() {
     grim slurp wl-clipboard cliphist mako libnotify hyprlock hypridle hyprpaper \
     ttf-jetbrains-mono-nerd noto-fonts adwaita-fonts \
     jq pacman-contrib reflector upower \
-    gocryptfs rtkit wireless-regdb
+    gocryptfs rtkit wireless-regdb \
+    openssh
 }
 
 # Mullvad on every profile (minimal and full): installed so its app works,
@@ -151,6 +152,8 @@ full_extras() {
     mpv imv ffmpegthumbnailer tumbler \
     noto-fonts-cjk noto-fonts-emoji \
     nodejs npm
+  # AppImages and FUSE mounts (restic mount) call fusermount, which only fuse2 ships
+  pacman -S --needed --noconfirm fuse2
   # gamemode may raise a game's priority only for members of this group
   usermod -aG gamemode "$USER_"
 }
@@ -320,6 +323,9 @@ services() {
   say "Shell + login screen"
   [[ $(getent passwd "$USER_" | cut -d: -f7) == /usr/bin/fish ]] || chsh -s /usr/bin/fish "$USER_"
   systemctl enable greetd.service
+  # ssh-agent for every user, started on first use; fish points SSH_AUTH_SOCK
+  # at it (config/fish/conf.d/ssh-agent.fish). sshd stays off.
+  systemctl --global enable ssh-agent.socket
   # login screen: username already filled in, only the password is asked.
   # tuigreet --remember keeps this file up to date after each login.
   install -d -o greeter -g greeter /var/cache/tuigreet
