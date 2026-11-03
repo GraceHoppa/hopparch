@@ -232,17 +232,15 @@ hl.bind(mod .. " + CTRL + S", hl.dsp.window.move({ workspace = "special:scratch"
 hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(scripts .. "/cheatsheet.sh"), { description = "This cheatsheet" })
 
 
--- what the profile adds (full: animations, blur, rounding, Steam rule). Lives in
--- profiles/full/config/hypr/profile.lua; minimal has no such file, so this
--- config alone is the minimal look. pcall: a broken profile file must never
--- take the rest of the config down. Its error is shown on screen (Hyprland's
--- own notification, no mako needed) and kept with the time in
+-- Optional extra files, loaded through pcall: a broken one must never take the
+-- rest of the config down. Its error is shown on screen (Hyprland's own
+-- notification, no mako needed) and kept with the time in
 -- ~/.local/state/hopparch/hyprland-errors.log.
-local profile = os.getenv("HOME") .. "/.config/hypr/profile.lua"
-local exists = io.open(profile)
-if exists then
-  exists:close()
-  local ok, err = pcall(dofile, profile)
+local function load_optional(path, what)
+  local f = io.open(path)
+  if not f then return end
+  f:close()
+  local ok, err = pcall(dofile, path)
   if not ok then
     local log = io.open(os.getenv("HOME") .. "/.local/state/hopparch/hyprland-errors.log", "a")
     if log then
@@ -250,8 +248,17 @@ if exists then
       log:close()
     end
     if hl.notification then
-      pcall(hl.notification.create, { text = "profile.lua failed, the profile look is off: " .. tostring(err),
+      pcall(hl.notification.create, { text = what .. " failed: " .. tostring(err),
                                       timeout = 20000, icon = 3 })
     end
   end
 end
+
+local hypr = os.getenv("HOME") .. "/.config/hypr/"
+-- what the profile adds (full: animations, blur, rounding, Steam rule). Lives in
+-- profiles/full/config/hypr/profile.lua; minimal has no such file, so this
+-- config alone is the minimal look.
+load_optional(hypr .. "profile.lua", "profile.lua (the profile look is off)")
+-- your own binds and settings: hopparch never ships or syncs a local.lua, so it
+-- survives every update. Loaded last, so it can override anything above.
+load_optional(hypr .. "local.lua", "local.lua (your own settings are off)")
