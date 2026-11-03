@@ -48,7 +48,7 @@ packages() {
   say "Packages"
   pacman -S --needed --noconfirm \
     hyprland xdg-desktop-portal-hyprland waybar kitty fuzzel \
-    fish eza zoxide fzf bat glow neovim btop firefox thunar \
+    fish eza zoxide fzf bat glow neovim btop firefox thunar xdg-terminal-exec \
     greetd greetd-tuigreet wtype \
     brightnessctl power-profiles-daemon python-gobject fastfetch \
     grim slurp wl-clipboard cliphist mako libnotify hyprlock hypridle hyprpaper \
