@@ -3,7 +3,7 @@
 # ~/.config and system/ into /.
 #   first install:  install.sh runs it inside the new system
 #   any time later: cd ~/hopparch && git pull && sudo ./setup.sh
-#   config only, no sudo: ~/.config/scripts/sync.sh (also hourly, by a timer)
+#   config only, no sudo: ~/.config/scripts/sync.sh
 #   switch profile: sudo ./setup.sh --profile=minimal   (or full; remembered
 #                   in ~/.config/hopparch/profile)
 # A config file you changed yourself is kept as <file>.bak-<date> before being
@@ -157,7 +157,7 @@ full_extras() {
 }
 
 # config/ with the profile's own files (profiles/<name>/config/) laid over it,
-# copied into ~/.config by the same script the hourly user sync runs
+# copied into ~/.config by the same script as a by-hand sync
 copy_config() {
   say "Config -> $HOME_/.config ($PROFILE profile)"
   runuser -u "$USER_" -- env HOME="$HOME_" bash config/scripts/sync.sh --no-pull --repo="$PWD" --profile="$PROFILE"
