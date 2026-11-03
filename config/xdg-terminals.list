@@ -1,0 +1,3 @@
+# Which terminal opens a Terminal=true app (nvim from Thunar, etc.): read by
+# xdg-terminal-exec, which GLib apps ask first. Without it, Thunar finds no kitty.
+kitty.desktop
