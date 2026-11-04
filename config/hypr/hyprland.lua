@@ -217,7 +217,11 @@ hl.bind(mod .. " + Tab", hl.dsp.exec_cmd(scripts .. "/windows.sh"), { descriptio
 -- SUPER+CTRL+S puts the focused window there (SUPER+SHIFT+1-9 takes it back).
 -- The terminal is found by its class: with kitty -1 the window belongs to the
 -- kitty already running, so Hyprland can't tell it was started for here.
-hl.workspace_rule({ workspace = "special:scratch", on_created_empty = terminal .. " --class scratchpad" })
+hl.on("workspace.created", function(ws)
+  if ws.name == "special:scratch" and ws.is_empty then
+    hl.exec_cmd(terminal .. " --class scratchpad")
+  end
+end)
 hl.window_rule({
   name      = "scratchpad",
   match     = { class = "^(scratchpad)$" },
