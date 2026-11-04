@@ -192,20 +192,14 @@ stash_apps() {
 # on every run, like the stashed apps.
 settings_entries() {
   say "Settings entries in the launcher"
-  local dir="$HOME_/.local/share/applications" entry name arg have
+  local dir="$HOME_/.local/share/applications" name arg
   runuser -u "$USER_" -- mkdir -p "$dir"
   grep -l -x '# hopparch-settings' "$dir"/*.desktop 2>/dev/null | xargs -r rm -f || true
-  # "/" = always (a package we install); the rest need the hardware
-  for entry in "Wi-Fi:wifi:/sys/class/net/*/wireless" "Bluetooth:bluetooth:/sys/class/bluetooth/hci*" \
-               "Brightness:brightness:/sys/class/backlight/*" "App volume:volume:/" "Power mode:power:/" \
-               "Battery:battery:/sys/class/power_supply/BAT*" "Devices:devices:/" "Specs:specs:/"; do
-    IFS=: read -r name arg have <<<"$entry"
-    # shellcheck disable=SC2086  # $have is a glob on purpose
-    compgen -G $have >/dev/null || continue
+  while IFS=: read -r name arg; do
     printf '[Desktop Entry]\n# hopparch-settings\nType=Application\nName=%s\nIcon=preferences-system\nExec=%s %s\n' \
       "$name" "$HOME_/.config/scripts/settings.sh" "$arg" \
       | runuser -u "$USER_" -- tee "$dir/hopparch-settings-$arg.desktop" >/dev/null
-  done
+  done < <(bash config/scripts/settings.sh entries)
 }
 
 copy_system() {
