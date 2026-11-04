@@ -200,7 +200,7 @@ settings_entries() {
   grep -l -x '# hopparch-settings' "$dir"/*.desktop 2>/dev/null | xargs -r rm -f || true
   # "/" = always (a package we install); the rest need the hardware
   for entry in "Wi-Fi:wifi:/sys/class/net/*/wireless" "Bluetooth:bluetooth:/sys/class/bluetooth/hci*" \
-               "Brightness:brightness:/sys/class/backlight/*" "Power mode:power:/" \
+               "Brightness:brightness:/sys/class/backlight/*" "App volume:volume:/" "Power mode:power:/" \
                "Battery:battery:/sys/class/power_supply/BAT*" "Devices:devices:/" "Specs:specs:/"; do
     IFS=: read -r name arg have <<<"$entry"
     # shellcheck disable=SC2086  # $have is a glob on purpose
