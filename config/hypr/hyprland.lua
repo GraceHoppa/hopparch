@@ -110,6 +110,11 @@ hl.config({
     disable_splash_rendering = true,
     force_default_wallpaper = 0,
     background_color = "rgba(000000ff)",
+    -- an app opens on the workspace it was launched from, and so do all its
+    -- later windows (2 = the whole process tree; 1 = the first window only,
+    -- which let Steam's main window drift to wherever you were by then).
+    -- A window rule with a workspace (Steam games -> "games") still wins.
+    initial_workspace_tracking = 2,
   },
 })
 
