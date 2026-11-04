@@ -169,33 +169,62 @@ brightness() {
   return 0
 }
 
+# a stream's level into $pct and $muted: "Volume: 0.80 [MUTED]" -> 80, [MUTED]
+stream_volume() {
+  local v m
+  read -r _ v m < <(wpctl get-volume "$1" 2>/dev/null) || return 1
+  pct=$((10#${v/./})) muted=$m
+}
+
 # One program's volume. A browser with three tabs playing has three streams and
-# is one line here: the level goes to all of them. WirePlumber remembers it, so
-# a game set to 50% comes back at 50% the next time it plays.
+# is one line here: the level goes to all of them. WirePlumber remembers it by
+# app name, so a game set to 50% comes back at 50% the next time it plays.
+# The list comes back after each change, to try another level; Escape leaves.
 volume() {
-  local app ids id now line choice level lines=""
-  local -A streams=()
-  while IFS=$'\t' read -r app ids; do
-    id=${ids%% *}
-    now=$(wpctl get-volume "$id" | awk '{ printf "%d", $2 * 100 + 0.5 }')
-    printf -v line '%-28.28s %3s%%' "$app" "$now"
-    streams[$line]=$ids
-    lines+=$line$'\n'
-  done < <(pw-dump | jq -r '
-    [.[] | select(.info.props["media.class"]? == "Stream/Output/Audio")
-     | { id, app: (.info.props["application.name"] // .info.props["node.name"] // "unknown") }]
-    | group_by(.app)[] | "\(.[0].app | gsub("\t"; " "))\t\(map(.id | tostring) | join(" "))"')
-  [[ -n $lines ]] || { note "App volume" "nothing is playing"; return 0; }
-  choice=$(printf '%s' "$lines" | pick volume --width 40 --lines "${#streams[@]}")
-  [[ -n $choice ]] || return 0
-  ids=${streams[$choice]:-}
-  [[ -n $ids ]] || return 0
-  level=$(printf '100%%\n75%%\n50%%\n25%%\n10%%\n0%%' | pick "${choice%% *}" --lines 6 --width 24)
-  [[ $level =~ ^[0-9]+%$ ]] || return 0
-  for id in $ids; do
+  local apps ids rows row=0 app streams id now pct muted toggle at choice n
+  while :; do
+    apps=() ids=() rows=()
+    while IFS=$'\t' read -r app streams; do
+      stream_volume "${streams%% *}" || continue
+      if [[ -n $muted ]]; then now=muted; else now=$pct%; fi
+      apps+=("$app") ids+=("$streams")
+      rows+=("$(printf '%5s  %s' "$now" "$app")")
+    done < <(pw-dump | jq -r '
+      [.[] | select(.info.props["media.class"]? == "Stream/Output/Audio")
+       | { id, app: (.info.props["application.name"] // .info.props["node.name"] // "unknown") }]
+      | group_by(.app)[] | "\(.[0].app | gsub("[\t\n]"; " "))\t\(map(.id | tostring) | join(" "))"')
+    ((${#rows[@]})) || { note "App volume" "nothing is playing"; return 0; }
+    ((row < ${#rows[@]})) || row=0
+    row=$(printf '%s\n' "${rows[@]}" | pick volume --index --only-match --select-index "$row" --width 40 --lines 12)
+    [[ -n $row ]] || return 0
+    streams=${ids[row]}
+    stream_volume "${streams%% *}" || continue  # it closed while the list was open
+
+    # Low to high, in tens: typing "10" lands on 10%, not 100%, and any other
+    # number (35, 150) matches nothing, so fuzzel hands back what was typed.
+    if [[ -n $muted ]]; then now=muted toggle=Unmute at=0; else
+      now=$pct% toggle=Mute at=$(((pct + 5) / 10))
+      ((at >= 1)) || at=1
+      ((at <= 10)) || at=10
+    fi
+    choice=$(printf '%s\n' "$toggle" {10..100..10} | sed '2,$s/$/%/' |
+      pick "${apps[row]} $now" --match-mode=exact --select-index "$at" --width 40 --lines 11)
+    n=${choice%\%}
     # a stream that went away between the two lists is not an error
-    wpctl set-volume "$id" "$level" 2>/dev/null || true
-    wpctl set-mute "$id" 0 2>/dev/null || true
+    if [[ $choice == Mute || $choice == Unmute ]]; then
+      if [[ $choice == Mute ]]; then n=1; else n=0; fi
+      for id in $streams; do wpctl set-mute "$id" "$n" 2>/dev/null || true; done
+    elif [[ $n =~ ^[0-9]{1,3}$ ]]; then
+      n=$((10#$n))
+      # the same ceiling as SUPER+volume key; above 100 is software gain
+      ((n <= 150)) || n=150
+      for id in $streams; do
+        wpctl set-volume "$id" "$n%" 2>/dev/null || true
+        wpctl set-mute "$id" 0 2>/dev/null || true
+      done
+    elif [[ -n $choice ]]; then
+      note "App volume" "\"$choice\" isn't a number"
+    fi
   done
 }
 
@@ -239,12 +268,27 @@ specs() {
 }
 
 
+# Name:argument:what must exist ("/" = always, a package we install). The one
+# list behind this menu and the SUPER+D entries setup.sh writes: hardware this
+# machine doesn't have gets neither.
+entries() {
+  local e name arg have
+  for e in "Wi-Fi:wifi:/sys/class/net/*/wireless" "Bluetooth:bluetooth:/sys/class/bluetooth/hci*" \
+           "Brightness:brightness:/sys/class/backlight/*" "App volume:volume:/" "Power mode:power:/" \
+           "Battery:battery:/sys/class/power_supply/BAT*" "Devices:devices:/" "Specs:specs:/"; do
+    IFS=: read -r name arg have <<<"$e"
+    compgen -G "$have" >/dev/null || continue
+    echo "$name:$arg"
+  done
+}
+
+
 case ${1:-} in
-  wifi|bluetooth|brightness|volume|power|battery|devices|specs) "$1" ;;
+  wifi|bluetooth|brightness|volume|power|battery|devices|specs|entries) "$1" ;;
   "")
-    case $(printf 'Wi-Fi\nBluetooth\nBrightness\nApp volume\nPower mode\nBattery\nDevices\nSpecs' | pick settings --lines 8) in
+    case $(entries | cut -d: -f1 | pick settings --lines 8) in
       Wi-Fi) wifi ;; Bluetooth) bluetooth ;; Brightness) brightness ;; "App volume") volume ;;
       "Power mode") power ;; Battery) battery ;; Devices) devices ;; Specs) specs ;;
     esac ;;
-  *) echo "usage: settings.sh [wifi|bluetooth|brightness|volume|power|battery|devices|specs]" >&2; exit 2 ;;
+  *) echo "usage: settings.sh [wifi|bluetooth|brightness|volume|power|battery|devices|specs|entries]" >&2; exit 2 ;;
 esac
