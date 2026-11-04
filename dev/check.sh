@@ -154,6 +154,47 @@ if grep -q '100%' "$tmp/fuz"; then
 fi
 EOF
 
+# App volume: fake PipeWire. Two Firefox streams are one line and both get the
+# level; another program's stream is left alone; nothing playing only says so.
+vol=$tmp/vol
+mkdir -p "$vol/bin"
+cat > "$vol/bin/pw-dump" << 'SH'
+#!/bin/bash
+cat "${VOLDIR:?}/dump.json"
+SH
+cat > "$vol/bin/wpctl" << 'SH'
+#!/bin/bash
+[[ $1 == get-volume ]] && { echo 'Volume: 0.80'; exit 0; }
+echo "$*" >> "${VOLDIR:?}/wpctl.log"
+SH
+cat > "$vol/bin/fuzzel" << 'SH'
+#!/bin/bash
+list=$(cat)
+if [[ $list == *Firefox* ]]; then grep Firefox <<<"$list"; else echo 50%; fi
+SH
+cat > "$vol/bin/notify-send" << 'SH'
+#!/bin/bash
+echo "$*" >> "${VOLDIR:?}/notes"
+SH
+chmod +x "$vol/bin/"*
+volrun() { : > "$vol/wpctl.log"; : > "$vol/notes"; PATH="$vol/bin:$PATH" VOLDIR=$vol bash "$root/config/scripts/settings.sh" volume; }
+cat > "$vol/dump.json" << 'JSON'
+[{"id":1,"type":"PipeWire:Interface:Core"},
+ {"id":10,"info":{"props":{"media.class":"Audio/Sink"}}},
+ {"id":41,"info":{"props":{"media.class":"Stream/Output/Audio","application.name":"Firefox"}}},
+ {"id":42,"info":{"props":{"media.class":"Stream/Output/Audio","application.name":"Firefox"}}},
+ {"id":50,"info":{"props":{"media.class":"Stream/Output/Audio","application.name":"Some Game"}}},
+ {"id":60,"info":{"props":{"media.class":"Stream/Input/Audio","application.name":"Firefox"}}}]
+JSON
+volrun
+grep -qx 'set-volume 41 50%' "$vol/wpctl.log" || fail "App volume missed a stream of the program"
+grep -qx 'set-volume 42 50%' "$vol/wpctl.log" || fail "App volume missed the second stream"
+grep -qE ' (50|60|10) ' "$vol/wpctl.log" && fail "App volume touched another stream"
+echo '[{"id":1,"type":"PipeWire:Interface:Core"}]' > "$vol/dump.json"
+volrun
+grep -q 'nothing is playing' "$vol/notes" || fail "App volume with no streams did not say so"
+[[ ! -s $vol/wpctl.log ]] || fail "App volume with no streams changed something"
+
 # ecoflow.sh: fake curl records its arguments and stdin and answers from a file.
 # Keys must never reach a command line, the signature must match EcoFlow's.
 eco=$tmp/eco
