@@ -169,15 +169,19 @@ echo "$*" >> "${VOLDIR:?}/wpctl.log"
 SH
 cat > "$vol/bin/fuzzel" << 'SH'
 #!/bin/bash
-list=$(cat)
-if [[ $list == *Firefox* ]]; then grep Firefox <<<"$list"; else echo 50%; fi
+# one answer per list, from the front of the queue; an empty one is Escape
+cat > /dev/null
+a=$(sed -n 1p "${VOLDIR:?}/answers")
+sed -i 1d "$VOLDIR/answers"
+[[ -n $a ]] && echo "$a"
+exit 0
 SH
 cat > "$vol/bin/notify-send" << 'SH'
 #!/bin/bash
 echo "$*" >> "${VOLDIR:?}/notes"
 SH
 chmod +x "$vol/bin/"*
-volrun() { : > "$vol/wpctl.log"; : > "$vol/notes"; PATH="$vol/bin:$PATH" VOLDIR=$vol bash "$root/config/scripts/settings.sh" volume; }
+volrun() { : > "$vol/wpctl.log"; : > "$vol/notes"; printf '%s\n' "$@" > "$vol/answers"; PATH="$vol/bin:$PATH" VOLDIR=$vol bash "$root/config/scripts/settings.sh" volume; }
 cat > "$vol/dump.json" << 'JSON'
 [{"id":1,"type":"PipeWire:Interface:Core"},
  {"id":10,"info":{"props":{"media.class":"Audio/Sink"}}},
@@ -186,10 +190,21 @@ cat > "$vol/dump.json" << 'JSON'
  {"id":50,"info":{"props":{"media.class":"Stream/Output/Audio","application.name":"Some Game"}}},
  {"id":60,"info":{"props":{"media.class":"Stream/Input/Audio","application.name":"Firefox"}}}]
 JSON
-volrun
+volrun 0 50% ''
 grep -qx 'set-volume 41 50%' "$vol/wpctl.log" || fail "App volume missed a stream of the program"
 grep -qx 'set-volume 42 50%' "$vol/wpctl.log" || fail "App volume missed the second stream"
 grep -qE ' (50|60|10) ' "$vol/wpctl.log" && fail "App volume touched another stream"
+volrun 1 30% ''
+[[ $(grep set-volume "$vol/wpctl.log") == 'set-volume 50 30%' ]] || fail "App volume set the wrong program"
+volrun 0 35 ''
+grep -qx 'set-volume 42 35%' "$vol/wpctl.log" || fail "App volume ignored a typed level"
+volrun 0 999 ''
+grep -qx 'set-volume 41 150%' "$vol/wpctl.log" || fail "App volume went past 150%"
+volrun 0 Mute ''
+grep -qx 'set-mute 42 1' "$vol/wpctl.log" || fail "App volume did not mute every stream"
+volrun 0 abc ''
+[[ ! -s $vol/wpctl.log ]] || fail "App volume acted on text that is not a level"
+grep -q "isn't a number" "$vol/notes" || fail "App volume took bad text in silence"
 echo '[{"id":1,"type":"PipeWire:Interface:Core"}]' > "$vol/dump.json"
 volrun
 grep -q 'nothing is playing' "$vol/notes" || fail "App volume with no streams did not say so"
