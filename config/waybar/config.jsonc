@@ -7,7 +7,7 @@
   "include": ["~/.config/waybar/stats.jsonc"],
   "modules-left": ["custom/mousebar", "wireplumber", "group/stats", "custom/wifi"],
   "modules-center": ["wlr/taskbar"],
-  "modules-right": ["tray", "clock", "custom/ecoflow", "battery", "custom/power"],
+  "modules-right": ["tray", "clock", "custom/ecoflow", "battery#bat0", "battery#bat1", "custom/power"],
 
   // open windows: icon only, one row. Middle click closes.
   "wlr/taskbar": {
@@ -65,7 +65,19 @@
   },
 
   // hidden when there is no battery. Lightning only while it is actually charging.
-  "battery": {
+  // Named, because without "bat" the module also watches peripherals: a controller
+  // unplugged mid-scan makes it throw, and the whole bar dies. BAT0 or BAT1 by machine.
+  "battery#bat0": {
+    "bat": "BAT0",
+    "interval": 10,
+    "format": "{capacity}%",
+    "format-charging": " {capacity}%",
+    "format-full": "{capacity}%",
+    "format-plugged": "{capacity}%",
+    "tooltip": false
+  },
+  "battery#bat1": {
+    "bat": "BAT1",
     "interval": 10,
     "format": "{capacity}%",
     "format-charging": " {capacity}%",
