@@ -1,13 +1,11 @@
 #!/bin/bash
-# Draw ~/.config/hopparch/wallpaper when that file exists (a picture, or a
-# symlink to one). No file, or no hyprpaper: leave the black background.
-# The picture is not part of hopparch.
+# Draw ~/.config/hopparch/wallpaper when that file exists: a copy of the
+# picture, not a link, so the config folder holds it. No file, or no hyprpaper:
+# leave the black background. The picture is not part of hopparch.
 set -u
-src=$HOME/.config/hopparch/wallpaper
-[[ -f $src ]] || exit 0
-command -v hyprpaper >/dev/null || exit 0
-path=$(readlink -f "$src") || exit 0
+path=$HOME/.config/hopparch/wallpaper
 [[ -f $path ]] || exit 0
+command -v hyprpaper >/dev/null || exit 0
 mkdir -p "$HOME/.config/hypr"
 # hyprpaper 0.8: a wallpaper block. Empty monitor = every screen.
 # cover scales the picture to fill the screen.
