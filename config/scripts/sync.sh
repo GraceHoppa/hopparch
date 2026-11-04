@@ -105,7 +105,8 @@ if printf '%s\n' "${changed[@]}" | grep -q '^hypr/'; then
   sig=${HYPRLAND_INSTANCE_SIGNATURE:-}
   # a systemd service may carry a stale signature: take the running instance
   if [[ -z $sig || ! -d ${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr/$sig ]]; then
-    sig=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" 2>/dev/null | head -1)
+    # || true: no hypr dir yet on a fresh install, and pipefail would end the script
+    sig=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" 2>/dev/null | head -1) || true
   fi
   [[ -n $sig ]] && HYPRLAND_INSTANCE_SIGNATURE=$sig hyprctl reload >/dev/null 2>&1 || true
 fi
