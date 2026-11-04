@@ -1,9 +1,9 @@
 #!/bin/bash
-# Settings without a settings app: the Wi-Fi, Bluetooth, Brightness, Power
-# mode, Battery, Devices and Specs entries in SUPER+D, and the mouse bar's
+# Settings without a settings app: the Wi-Fi, Bluetooth, Brightness, App volume,
+# Power mode, Battery, Devices and Specs entries in SUPER+D, and the mouse bar's
 # settings button (no argument = a menu of all of them). Every screen is a
 # fuzzel list.
-#   settings.sh [wifi|bluetooth|brightness|power|battery|devices|specs]
+#   settings.sh [wifi|bluetooth|brightness|volume|power|battery|devices|specs]
 set -euo pipefail
 # *( ) patterns (bt_pair strips colour codes with one)
 shopt -s extglob
@@ -169,6 +169,36 @@ brightness() {
   return 0
 }
 
+# One program's volume. A browser with three tabs playing has three streams and
+# is one line here: the level goes to all of them. WirePlumber remembers it, so
+# a game set to 50% comes back at 50% the next time it plays.
+volume() {
+  local app ids id now line choice level lines=""
+  local -A streams=()
+  while IFS=$'\t' read -r app ids; do
+    id=${ids%% *}
+    now=$(wpctl get-volume "$id" | awk '{ printf "%d", $2 * 100 + 0.5 }')
+    printf -v line '%-28.28s %3s%%' "$app" "$now"
+    streams[$line]=$ids
+    lines+=$line$'\n'
+  done < <(pw-dump | jq -r '
+    [.[] | select(.info.props["media.class"]? == "Stream/Output/Audio")
+     | { id, app: (.info.props["application.name"] // .info.props["node.name"] // "unknown") }]
+    | group_by(.app)[] | "\(.[0].app | gsub("\t"; " "))\t\(map(.id | tostring) | join(" "))"')
+  [[ -n $lines ]] || { note "App volume" "nothing is playing"; return 0; }
+  choice=$(printf '%s' "$lines" | pick volume --width 40 --lines "${#streams[@]}")
+  [[ -n $choice ]] || return 0
+  ids=${streams[$choice]:-}
+  [[ -n $ids ]] || return 0
+  level=$(printf '100%%\n75%%\n50%%\n25%%\n10%%\n0%%' | pick "${choice%% *}" --lines 6 --width 24)
+  [[ $level =~ ^[0-9]+%$ ]] || return 0
+  for id in $ids; do
+    # a stream that went away between the two lists is not an error
+    wpctl set-volume "$id" "$level" 2>/dev/null || true
+    wpctl set-mute "$id" 0 2>/dev/null || true
+  done
+}
+
 power() {
   local now choice
   now=$(powerprofilesctl get 2>/dev/null) || { note "Power modes: power-profiles-daemon isn't running"; return 0; }
@@ -210,11 +240,11 @@ specs() {
 
 
 case ${1:-} in
-  wifi|bluetooth|brightness|power|battery|devices|specs) "$1" ;;
+  wifi|bluetooth|brightness|volume|power|battery|devices|specs) "$1" ;;
   "")
-    case $(printf 'Wi-Fi\nBluetooth\nBrightness\nPower mode\nBattery\nDevices\nSpecs' | pick settings --lines 7) in
-      Wi-Fi) wifi ;; Bluetooth) bluetooth ;; Brightness) brightness ;;
+    case $(printf 'Wi-Fi\nBluetooth\nBrightness\nApp volume\nPower mode\nBattery\nDevices\nSpecs' | pick settings --lines 8) in
+      Wi-Fi) wifi ;; Bluetooth) bluetooth ;; Brightness) brightness ;; "App volume") volume ;;
       "Power mode") power ;; Battery) battery ;; Devices) devices ;; Specs) specs ;;
     esac ;;
-  *) echo "usage: settings.sh [wifi|bluetooth|brightness|power|battery|devices|specs]" >&2; exit 2 ;;
+  *) echo "usage: settings.sh [wifi|bluetooth|brightness|volume|power|battery|devices|specs]" >&2; exit 2 ;;
 esac
