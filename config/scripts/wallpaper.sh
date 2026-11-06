@@ -8,8 +8,11 @@ path=$HOME/.config/hopparch/wallpaper
 command -v hyprpaper >/dev/null || exit 0
 mkdir -p "$HOME/.config/hypr"
 # hyprpaper 0.8: a wallpaper block. Empty monitor = every screen.
-# cover scales the picture to fill the screen.
+# cover scales the picture to fill the screen. splash: hyprpaper's own copy of
+# Hyprland's random text, separate from misc.disable_splash_rendering.
 cat >"$HOME/.config/hypr/hyprpaper.conf" <<EOF
+splash = false
+
 wallpaper {
     monitor =
     path = $path
