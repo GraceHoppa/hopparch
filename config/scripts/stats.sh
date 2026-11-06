@@ -28,6 +28,8 @@ gpu() {
     status=$(cat "$dev/power/runtime_status" 2>/dev/null || echo active)
     if [[ $status != active ]]; then asleep=1; continue; fi
     command -v nvidia-smi >/dev/null || continue
+    # awake but nobody on it: nvidia-smi on every tick would keep it awake forever
+    if command -v fuser >/dev/null && ! fuser -s /dev/nvidia0 2>/dev/null; then asleep=1; continue; fi
     nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null |
       awk -F', *' 'NR == 1 { printf "GPU %d%% %d°\n", $1, $2 }' | grep . && return
   done
