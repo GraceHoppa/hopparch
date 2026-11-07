@@ -3,7 +3,6 @@
 local mod      = "SUPER"
 -- -1 = one kitty process for all windows: ~15 MB per extra window instead of ~160
 local terminal = "kitty -1"
-local launcher = "fuzzel"
 local browser  = "firefox"
 local files    = "thunar"
 local scripts  = os.getenv("HOME") .. "/.config/scripts"
@@ -116,7 +115,7 @@ hl.config({
 
 -- apps
 hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal), { description = "Terminal" })
-hl.bind(mod .. " + D",      hl.dsp.exec_cmd(launcher), { description = "Launcher (apps, settings)" })
+hl.bind(mod .. " + D",      hl.dsp.exec_cmd(scripts .. "/launcher.sh"), { description = "Launcher (apps, settings, games)" })
 hl.bind(mod .. " + B",      hl.dsp.exec_cmd(browser), { description = "Browser" })
 hl.bind(mod .. " + F",      hl.dsp.exec_cmd(files), { description = "File manager" })
 -- btop, almost the whole screen. btop.sh picks the cell count from this monitor.
@@ -132,6 +131,7 @@ hl.bind(mod .. " + SHIFT + E", hl.dsp.exec_cmd(scripts .. "/power-menu.sh"), { d
 hl.bind(mod .. " + SHIFT + Escape", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), { description = "Lock screen" })
 
 -- screenshots: path of the saved file is copied (screenshot.sh)
+hl.bind(mod .. " + SHIFT + P",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
 hl.bind(mod .. " + SHIFT + S",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh region"), { description = "Screenshot: region" })
 hl.bind(mod .. " + SHIFT + CTRL + S", hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
 -- clipboard history

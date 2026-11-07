@@ -1,5 +1,5 @@
 #!/bin/bash
-# Screenshots: SUPER+SHIFT+S = pick a region, SUPER+SHIFT+CTRL+S = whole screen.
+# Screenshots: SUPER+SHIFT+S = pick a region, SUPER+SHIFT+P or SUPER+SHIFT+CTRL+S = whole screen.
 # Saved in ~/Pictures/Screenshots. Copies the file's path, then the picture:
 # the picture is what you paste, the path is one step back in the clipboard
 # history (SUPER+CTRL+V).
