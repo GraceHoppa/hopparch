@@ -200,6 +200,14 @@ hl.window_rule({
   center = true,
 })
 
+-- HoppCong (the settings GUI) floats in the middle, like btop
+hl.window_rule({
+  name   = "hoppcong",
+  match  = { class = "^dev\\.hopparch\\.hoppcong$" },
+  float  = true,
+  center = true,
+})
+
 
 -- windows: hjkl = focus, +SHIFT = move, +CTRL = resize (hold)
 local step = 40
