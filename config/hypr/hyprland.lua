@@ -111,7 +111,8 @@ hl.config({
   },
   animations = { enabled = false },
   input = {
-    kb_layout = "us",
+    -- us first; ua is second and is switched only from the mouse bar (no key bind)
+    kb_layout = "us,ua",
     -- held keys repeat after 0.3 s, 50x per second (defaults: 0.6 s, 25x)
     repeat_delay = 300,
     repeat_rate = 50,
