@@ -12,6 +12,9 @@ window#waybar {
 /* every button: waybar gives custom modules the class "module" */
 .module {
   padding: 8px 0;
+  /* the bar's "width" in mouse.jsonc: each button fills it, so icons centre
+     (Waybar 0.16 no longer did on its own) */
+  min-width: 36px;
 }
 
 .module:hover {
