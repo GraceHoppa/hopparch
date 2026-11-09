@@ -12,7 +12,7 @@ animations {
 
 background {
     monitor =
-    color = rgba(000000ff)
+    color = @bg:rgba@
 }
 
 label {
@@ -20,7 +20,7 @@ label {
     text = cmd[update:60000] cat ~/.config/hopparch/lock-text 2>/dev/null
     font_family = JetBrainsMono Nerd Font
     font_size = 26
-    color = rgba(e8e4dcff)
+    color = @text:rgba@
     position = 0, 70
     halign = center
     valign = center
@@ -31,11 +31,11 @@ input-field {
     size = 320, 48
     rounding = 0
     outline_thickness = 2
-    outer_color = rgba(e8e4dcff)
-    inner_color = rgba(000000ff)
-    font_color = rgba(e8e4dcff)
-    check_color = rgba(e8e4dcff)
-    fail_color = rgba(c23d3dff)
+    outer_color = @text:rgba@
+    inner_color = @bg:rgba@
+    font_color = @text:rgba@
+    check_color = @text:rgba@
+    fail_color = @alert:rgba@
     fade_on_empty = false
     placeholder_text =
     fail_text = wrong

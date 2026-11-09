@@ -48,6 +48,8 @@ tree=$(mktemp -d)
 trap 'rm -rf "$tree"' EXIT
 cp -a config/. "$tree"/
 if [[ -d profiles/$PROFILE/config ]]; then cp -a "profiles/$PROFILE/config/." "$tree"/; fi
+# colours: each <file>.tmpl becomes <file> from the palette (settings.lua + your user.lua)
+luajit "$tree/hopparch/gen-palette.lua" "$tree" || { echo "palette generator failed: nothing synced" >&2; exit 1; }
 
 changed=()
 while IFS= read -r -d '' src; do
