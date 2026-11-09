@@ -4,6 +4,8 @@
 // starts belongs to Hyprland, not to this bar: hiding the bar closes nothing.
 // kbd: the first click starts the keyboard, later clicks hide/show it
 // (SIGRTMIN); it stays running, so a latched Shift/Super is never left stuck.
+// us/ua: the keyboard layout (hyprland.lua kb_layout), click to switch; there is
+// no key bind for it.
 // ◀ ▶: the open workspaces of this monitor; ▶ on the last one makes a new
 // empty one (scripts/workspace.sh).
 {
@@ -11,10 +13,11 @@
   "position": "left",
   "width": 36,
   "spacing": 4,
-  "modules-left": ["custom/apps", "custom/kbd", "custom/scratch", "custom/browser", "custom/settings", "custom/windows"],
+  "modules-left": ["custom/apps", "custom/kbd", "hyprland/language", "custom/scratch", "custom/browser", "custom/settings", "custom/windows"],
   "modules-right": ["custom/prev", "custom/next"],
   "custom/apps": { "format": "󰀻", "tooltip-format": "Apps (SUPER+D)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"fuzzel\")'" },
   "custom/kbd": { "format": "󰌌", "tooltip-format": "On-screen keyboard", "on-click": "pkill --signal RTMIN -x wvkbd-deskintl || hyprctl dispatch 'hl.dsp.exec_cmd(\"wvkbd-deskintl -L 280\")'" },
+  "hyprland/language": { "format": "{short}", "tooltip-format": "Keyboard layout: {long} (click to switch)", "on-click": "hyprctl switchxkblayout all next" },
   "custom/scratch": { "format": "󰆍", "tooltip-format": "Scratchpad (SUPER+S)", "on-click": "hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"scratch\")'" },
   "custom/browser": { "format": "󰖟", "tooltip-format": "Browser (SUPER+B)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"firefox\")'" },
   "custom/settings": { "format": "󰒓", "tooltip-format": "Settings", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"$HOME/.config/scripts/settings.sh\")'" },
