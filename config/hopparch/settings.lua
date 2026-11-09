@@ -2,6 +2,8 @@
 -- hopparch never writes or syncs. Each entry: { value, type=, min=, max=, label= }
 -- (the settings GUI draws a widget from type/min/max/label).
 return {
+  -- the order the settings GUI lists the palette in (Lua tables have none)
+  palette_order = { "bg", "text", "focus", "dim", "sel", "muted", "alert", "accent", "white" },
   palette = {
     bg    = { "000000", type = "color", label = "Background" },
     focus = { "e8e4dc", type = "color", label = "Focused border" },
