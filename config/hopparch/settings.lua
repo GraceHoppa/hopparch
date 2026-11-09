@@ -4,6 +4,7 @@
 return {
   -- the order the settings GUI lists the palette in (Lua tables have none)
   palette_order = { "bg", "text", "focus", "dim", "sel", "muted", "alert", "accent", "white" },
+  look_order = { "gaps_in", "gaps_out", "border_size", "rounding" },
   palette = {
     bg    = { "000000", type = "color", label = "Background" },
     focus = { "e8e4dc", type = "color", label = "Focused border" },
@@ -18,6 +19,6 @@ return {
   gaps_in     = { 4, type = "int", min = 0, max = 40, label = "Gap between windows" },
   gaps_out    = { 8, type = "int", min = 0, max = 80, label = "Gap to screen edge" },
   border_size = { 2, type = "int", min = 0, max = 10, label = "Border width" },
-  -- 0 in the minimal profile, 6 in the full one unless you set your own
-  rounding    = { 0, type = "int", min = 0, max = 30, label = "Corner rounding" },
+  -- 0 in the minimal profile; `full` is the full profile's default (user.lua wins)
+  rounding    = { 0, full = 6, type = "int", min = 0, max = 30, label = "Corner rounding" },
 }

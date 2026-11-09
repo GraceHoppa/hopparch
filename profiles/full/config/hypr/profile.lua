@@ -7,8 +7,8 @@ hl.config({
     col = { active_border = { colors = { "rgba(" .. hopparch.palette.focus[1] .. "ff)", "rgba(8a877fff)" }, angle = 45 } },
   },
   decoration = {
-    -- 6 is this profile's default; a rounding in user.lua wins
-    rounding = hopparch.rounding.user and hopparch.rounding[1] or 6,
+    -- this profile's default is rounding.full in settings.lua; a rounding in user.lua wins
+    rounding = hopparch.rounding.user and hopparch.rounding[1] or hopparch.rounding.full,
     blur   = { enabled = true, size = 6, passes = 2 },
     shadow = { enabled = true, range = 12, render_power = 3, color = "rgba(00000099)" },
   },
