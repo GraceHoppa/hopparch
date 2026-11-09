@@ -6,23 +6,9 @@
 local tree = arg[1]
 local home = os.getenv("HOME")
 
-local function load(path)
-  local f = loadfile(path)
-  return f and f()
-end
-
-local S = load(tree .. "/hopparch/settings.lua")
-local U = load(home .. "/.config/hopparch/user.lua") or {}
--- same merge as hyprland.lua: user wins, key by key
-for k, v in pairs(U) do
-  if type(v) == "table" and type(S[k]) == "table" and S[k][1] == nil then
-    for k2, v2 in pairs(v) do
-      if S[k][k2] then S[k][k2][1] = v2 end
-    end
-  elseif type(S[k]) == "table" then
-    S[k][1] = v
-  end
-end
+-- the same loader as hyprland.lua: user wins key by key, bad values are skipped
+local S, warnings = dofile(tree .. "/hopparch/load.lua")(tree .. "/hopparch/", home .. "/.config/hopparch/user.lua")
+for _, w in ipairs(warnings) do io.stderr:write(w, "\n") end
 
 local function colour(name, fmt, alpha)
   local c = S.palette[name]

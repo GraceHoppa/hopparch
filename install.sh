@@ -193,6 +193,11 @@ choose_profile() {
 # GPT type GUIDs: EFI system partition, and the two Linux types cfdisk offers
 ESP_GUID=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
 LINUX_GUIDS="0fc63daf-8483-4772-8e79-3d69d8477de4 4f68bce3-e8cd-4db1-96e7-fbcaf984b709"
+# What hopparch itself puts at the top of its EFI partition (setup.sh adds the
+# linux-lts kernel). An earlier hopparch on the same root is recognised by
+# these names, and only these are removed before a reinstall.
+OWN_BOOT=(vmlinuz-linux vmlinuz-linux-lts initramfs-linux.img initramfs-linux-fallback.img
+          initramfs-linux-lts.img initramfs-linux-lts-fallback.img intel-ucode.img amd-ucode.img grub)
 
 # pick one of several devices: pick "EFI partition" /dev/a /dev/b
 pick() {
@@ -224,7 +229,10 @@ classify_esp() {
   ESP_STATUS=modify
   ESP_CLEAN=()
   if [[ $(lsblk -no FSTYPE "$ESP") == vfat ]]; then
-    local m linux root_uuid
+    local m linux root_uuid own
+    # OWN_BOOT as one pattern: name|name|..., dots taken literally
+    own=$(IFS='|'; echo "${OWN_BOOT[*]}")
+    own=${own//./\\.}
     m=$(mktemp -d)
     mount -o ro "$ESP" "$m" 2>/dev/null \
       || { rmdir "$m"; die "can't read the EFI partition $ESP (FAT errors?): check it, or make a new one -- nothing was changed"; }
@@ -235,8 +243,8 @@ classify_esp() {
     if [[ -n $linux ]]; then
       root_uuid=$(lsblk -no UUID "$ROOT" | head -1)
       if [[ -n $root_uuid && -f $m/grub/grub.cfg ]] && grep -q -- "$root_uuid" "$m/grub/grub.cfg" \
-         && ! grep -vixE './(vmlinuz-linux|initramfs-linux(-fallback)?\.img|(intel|amd)-ucode\.img|grub|EFI/GRUB/grubx64\.efi)' <<<"$linux" | grep -q .; then
-        ESP_CLEAN=(vmlinuz-linux initramfs-linux.img initramfs-linux-fallback.img intel-ucode.img amd-ucode.img grub EFI/GRUB)
+         && ! grep -vixE "\./($own|EFI/GRUB/grubx64\.efi)" <<<"$linux" | grep -q .; then
+        ESP_CLEAN=("${OWN_BOOT[@]}" EFI/GRUB)
       else
         umount "$m"; rmdir "$m"
         while read -r p; do echo "    ${p#./}"; done <<<"$linux" >/dev/tty
@@ -247,15 +255,14 @@ classify_esp() {
     local e d
     shopt -s nocasematch dotglob nullglob
     for e in "$m"/*; do
-      case ${e##*/} in
-        vmlinuz-linux|initramfs-linux.img|initramfs-linux-fallback.img|intel-ucode.img|amd-ucode.img|grub)
-          ((${#ESP_CLEAN[@]})) && continue ;;
-        efi)
-          if ((${#ESP_CLEAN[@]})); then
-            for d in "$e"/*; do [[ ${d##*/} == grub ]] || ESP_STATUS=existing; done
-            continue
-          fi ;;
-      esac
+      if ((${#ESP_CLEAN[@]})); then
+        # the earlier attempt's own files don't make the partition "in use"
+        [[ " ${OWN_BOOT[*]} " == *" ${e##*/} "* ]] && continue
+        if [[ ${e##*/} == efi ]]; then
+          for d in "$e"/*; do [[ ${d##*/} == grub ]] || ESP_STATUS=existing; done
+          continue
+        fi
+      fi
       ESP_STATUS=existing
     done
     shopt -u nocasematch dotglob nullglob
@@ -540,6 +547,17 @@ run_setup() {
   arch-chroot /mnt "$dest/setup.sh" --profile="$PROFILE" "$USERNAME"
 }
 
+# The last line. "Unlock the disk" only where there is a disk password: asked
+# for in this run, or (resume_setup, nothing was asked) the new root sits on a
+# LUKS mapping.
+all_done() {
+  if [[ ${ENCRYPT:-} == yes || $(findmnt -no SOURCE /mnt 2>/dev/null) == /dev/mapper/* ]]; then
+    say "All done. Reboot, unlock the disk, then log in on the login screen."
+  else
+    say "All done. Reboot, then log in on the login screen."
+  fi
+}
+
 # Same ISO session, archinstall finished, clone or setup did not. /mnt is still
 # the new system. Skip the format questions.
 resume_setup() {
@@ -555,7 +573,7 @@ resume_setup() {
   [[ -d /mnt/home/$USERNAME ]] || die "no /home/$USERNAME on the installed system"
   say "Skipping archinstall. Running setup only."
   run_setup
-  say "All done. Reboot, unlock the disk, then log in on the login screen."
+  all_done
   exit 0
 }
 
@@ -573,4 +591,4 @@ write_config
 run_archinstall
 boot_entry
 run_setup
-say "All done. Reboot, unlock the disk, then log in on the login screen."
+all_done

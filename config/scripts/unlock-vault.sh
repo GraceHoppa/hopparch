@@ -19,7 +19,7 @@ fi
 
 kitty -1 --title 'unlock vault' -e bash -c '
   set -euo pipefail
-  echo "Unlock ~/Vault. Same passphrase as root. It is not saved."
+  echo "Unlock ~/Vault. The passphrase is not saved."
   if gocryptfs "$HOME/.cipher" "$HOME/Vault"; then
     "$HOME/.config/scripts/migrate-vault.sh"
   else

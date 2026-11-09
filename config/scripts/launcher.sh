@@ -10,6 +10,7 @@ shopt -s nullglob
 entries() {
   local dir dirs files=()
   IFS=: read -ra dirs <<<"${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  # shellcheck disable=SC2190 # this `files` is the local list, not the id -> path map below
   for dir in "${dirs[@]}"; do files+=("$dir"/applications/*.desktop); done
   ((${#files[@]})) || return 0
 
