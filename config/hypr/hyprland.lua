@@ -67,21 +67,45 @@ end
 hl.monitor({ output = "", mode = "highrr", position = "auto", scale = "auto" })
 
 
+-- settings: shipped defaults (~/.config/hopparch/settings.lua), then your own
+-- ~/.config/hopparch/user.lua on top, key by key. A missing or broken user.lua
+-- means plain defaults. Global, so profile.lua can read it too. `.user` marks
+-- a value you set yourself.
+local function load_settings()
+  local dir = os.getenv("HOME") .. "/.config/hopparch/"
+  local S = dofile(dir .. "settings.lua")
+  local ok, U = pcall(dofile, dir .. "user.lua")
+  if ok and type(U) == "table" then
+    for k, v in pairs(U) do
+      if type(v) == "table" and type(S[k]) == "table" and S[k][1] == nil then
+        for k2, v2 in pairs(v) do
+          if S[k][k2] then S[k][k2][1] = v2; S[k][k2].user = true end
+        end
+      elseif type(S[k]) == "table" then
+        S[k][1] = v; S[k].user = true
+      end
+    end
+  end
+  return S
+end
+hopparch = load_settings()
+local cfg = hopparch
+
 -- plain look: nothing that costs GPU time
 hl.config({
   general = {
-    gaps_in = 4,
-    gaps_out = 8,
-    border_size = 2,
+    gaps_in = cfg.gaps_in[1],
+    gaps_out = cfg.gaps_out[1],
+    border_size = cfg.border_size[1],
     layout = "dwindle",
     col = {
       -- 0xyc: cream = focused, dark grey = the rest
-      active_border   = "rgba(e8e4dcff)",
-      inactive_border = "rgba(3a3a38ff)",
+      active_border   = "rgba(" .. cfg.palette.focus[1] .. "ff)",
+      inactive_border = "rgba(" .. cfg.palette.dim[1] .. "ff)",
     },
   },
   decoration = {
-    rounding = 0,
+    rounding = cfg.rounding[1],
     blur   = { enabled = false },
     shadow = { enabled = false },
   },
@@ -108,7 +132,7 @@ hl.config({
     -- there is no custom phrase. This turns that line off.
     disable_splash_rendering = true,
     force_default_wallpaper = 0,
-    background_color = "rgba(000000ff)",
+    background_color = "rgba(" .. cfg.palette.bg[1] .. "ff)",
   },
 })
 
