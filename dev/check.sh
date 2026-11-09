@@ -33,6 +33,7 @@ grep -q 'nothing was changed' "$tmp/esp-fail.out" || fail "mount failure did not
 ( source "$fns"
   lsblk() { echo btrfs; }
   mount() { echo mounted >"$tmp/mounted"; }
+  # shellcheck disable=SC2034 # read by classify_esp
   ESP=/dev/sda1
   classify_esp
   [[ $ESP_STATUS == modify && ! -e $tmp/mounted ]]
@@ -266,5 +267,63 @@ echo 'not json' > "$eco/log.reply"
 ecorun | grep -q unreadable || fail "ecoflow: a broken reply was not caught"
 touch "$eco/log.down"
 ecorun | grep -q 'did not answer' || fail "ecoflow: no internet was not shown"
+
+# a reinstall over a finished hopparch: its own boot files (linux-lts too) on the
+# same root are an earlier attempt, cleaned and formatted, not "another Linux"
+own_esp() {
+  mkdir -p "$1/grub" "$1/EFI/GRUB"
+  touch "$1"/{vmlinuz-linux,vmlinuz-linux-lts,initramfs-linux.img,initramfs-linux-lts.img,amd-ucode.img} "$1/EFI/GRUB/grubx64.efi"
+  echo "search --fs-uuid abcd-1234" > "$1/grub/grub.cfg"
+}
+( source "$fns"
+  lsblk() { case "$*" in *UUID*) echo abcd-1234 ;; *) echo vfat ;; esac; }
+  mount() { own_esp "$4"; }
+  umount() { rm -rf "${1:?}"/*; }
+  ESP=/dev/sda1 ROOT=/dev/sda2
+  classify_esp
+  [[ $ESP_STATUS == modify && " ${ESP_CLEAN[*]} " == *" vmlinuz-linux-lts "* ]]
+) || fail "a reinstall over hopparch (with linux-lts) was not recognised"
+
+if ( source "$fns"
+     lsblk() { case "$*" in *UUID*) echo abcd-1234 ;; *) echo vfat ;; esac; }
+     mount() { own_esp "$4"; touch "$4/vmlinuz-linux-zen"; }
+     umount() { rm -rf "${1:?}"/*; }
+     # shellcheck disable=SC2034 # read by classify_esp
+     ESP=/dev/sda1 ROOT=/dev/sda2
+     classify_esp
+   ) >"$tmp/esp-other.out" 2>&1 </dev/null
+then
+  fail "an EFI partition with another Linux's kernel was not refused"
+fi
+grep -q "another Linux's boot files" "$tmp/esp-other.out" || fail "the foreign kernel was not named as the reason"
+
+# settings: user.lua wins key by key; a typo, a bad colour or a number out of
+# range is skipped with a warning and never stops the caller
+set_dir=$tmp/settings
+mkdir -p "$set_dir"
+cp "$root/config/hopparch/settings.lua" "$root/config/hopparch/load.lua" "$set_dir/"
+cat > "$set_dir/user.lua" << 'LUA'
+return {
+  gaps_in = 3,
+  gaps_out = 999,
+  border_sise = 5,
+  palette = { bg = "2e3440", focus = "#88c0d0", texxt = "ffffff" },
+  schemes = {},
+}
+LUA
+cat > "$tmp/show-settings.lua" << 'LUA'
+local d = arg[1] .. "/"
+local S, w = dofile(d .. "load.lua")(d, d .. arg[2])
+print(S.gaps_in[1], tostring(S.gaps_in.user), S.gaps_out[1], S.border_size[1], S.palette.bg[1], S.palette.focus[1], #w)
+for _, x in ipairs(w) do io.stderr:write(x, "\n") end
+LUA
+settings() { luajit "$tmp/show-settings.lua" "$set_dir" "$1" 2>"$tmp/settings.err"; }
+[[ $(settings user.lua) == $'3\ttrue\t8\t2\t2e3440\te8e4dc\t5' ]] || fail "settings: user.lua merged wrong: $(settings user.lua)"
+for w in gaps_out border_sise palette.focus palette.texxt schemes; do
+  grep -q "user.lua: $w: " "$tmp/settings.err" || fail "settings: no warning for $w"
+done
+echo 'return {' > "$set_dir/broken.lua"
+[[ $(settings broken.lua) == $'4\tnil\t8\t2\t000000\te8e4dc\t1' ]] || fail "settings: a broken user.lua did not fall back to the defaults"
+[[ $(settings missing.lua) == $'4\tnil\t8\t2\t000000\te8e4dc\t0' ]] || fail "settings: a missing user.lua is not plain defaults"
 
 echo OK

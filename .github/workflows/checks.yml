@@ -7,4 +7,7 @@ jobs:
       - uses: actions/checkout@v5
       # check.sh fakes mounts in a user namespace; Ubuntu's AppArmor blocks those by default.
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      # luajit: the Lua parse check, and check.sh runs the settings loader
+      - run: sudo apt-get update && sudo apt-get install -y luajit shellcheck
+      - run: bash dev/lint.sh
       - run: bash dev/check.sh

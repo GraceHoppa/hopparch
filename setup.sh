@@ -31,14 +31,11 @@ done
 USER_=${args[0]:-${SUDO_USER:-}}
 [[ -n $USER_ && $USER_ != root ]] || die "usage: sudo ./setup.sh [--profile=full|minimal] [user]"
 HOME_=$(getent passwd "$USER_" | cut -d: -f6)
-GROUP_=$(id -gn "$USER_")
 # minimal = plain and light for old machines; full = minimal + gaming, coding
 # tools, media, nicer look. Given now, else what was used last time, else full.
 PROFILE_FILE="$HOME_/.config/hopparch/profile"
 PROFILE=${PROFILE_ARG:-$(cat "$PROFILE_FILE" 2>/dev/null || echo full)}
 [[ $PROFILE == full || $PROFILE == minimal ]] || die "profile must be full or minimal, not '$PROFILE'"
-# copies of what setup.sh installed last time, to tell your edits from ours
-STATE="$HOME_/.local/state/hopparch/installed"
 
 # launcher entries hidden from SUPER+D (and listed in "Stashed apps")
 STASHED=$(grep -v -e '^#' -e '^\s*$' config/hopparch/stashed.list)
@@ -82,8 +79,11 @@ mullvad_vpn() {
 # one (pacman -Syu never updates AUR packages). A failed build (no internet?)
 # only costs the keyboard, so setup goes on.
 AUR=${HOPPARCH_AUR:-https://aur.archlinux.org}
-# empty = always the latest AUR version (owner's choice); a commit id pins it
-WVKBD_AUR_COMMIT=""
+# Pinned: an AUR build script is code that runs here, so only a commit that was
+# read is built. To update: read the new PKGBUILD on the AUR, then put its
+# commit id here (git ls-remote $AUR/wvkbd-deskintl.git HEAD). Empty = always
+# the latest, unread.
+WVKBD_AUR_COMMIT="437e5098b9d842890cfd6fd0c75ed5a46ef30bc7"
 onscreen_keyboard() {
   local tmp ver deps
   tmp=$(mktemp -d)
@@ -130,7 +130,9 @@ full_extras() {
   say "Full profile: gaming, coding tools, media"
   if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
     sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-    pacman -Sy >/dev/null
+    # a full upgrade, not only -Sy: new package lists with old installed
+    # packages is a partial upgrade, which Arch does not support
+    pacman -Syu --noconfirm
   fi
   local lib32=(lib32-mesa lib32-vulkan-icd-loader) v known=no
   for v in $(gpu_vendors); do

@@ -67,28 +67,29 @@ end
 hl.monitor({ output = "", mode = "highrr", position = "auto", scale = "auto" })
 
 
--- settings: shipped defaults (~/.config/hopparch/settings.lua), then your own
--- ~/.config/hopparch/user.lua on top, key by key. A missing or broken user.lua
--- means plain defaults. Global, so profile.lua can read it too. `.user` marks
--- a value you set yourself.
-local function load_settings()
-  local dir = os.getenv("HOME") .. "/.config/hopparch/"
-  local S = dofile(dir .. "settings.lua")
-  local ok, U = pcall(dofile, dir .. "user.lua")
-  if ok and type(U) == "table" then
-    for k, v in pairs(U) do
-      if type(v) == "table" and type(S[k]) == "table" and S[k][1] == nil then
-        for k2, v2 in pairs(v) do
-          if S[k][k2] then S[k][k2][1] = v2; S[k][k2].user = true end
-        end
-      elseif type(S[k]) == "table" then
-        S[k][1] = v; S[k].user = true
-      end
-    end
+-- A problem in a file that is yours or optional must never take the config
+-- down: it is shown on screen (Hyprland's own notification, no mako needed)
+-- and kept with the time in ~/.local/state/hopparch/hyprland-errors.log.
+local function report(text)
+  local log = io.open(os.getenv("HOME") .. "/.local/state/hopparch/hyprland-errors.log", "a")
+  if log then
+    log:write(os.date("%Y-%m-%d %H:%M:%S"), "  ", text, "\n")
+    log:close()
   end
-  return S
+  if hl.notification then
+    pcall(hl.notification.create, { text = text, timeout = 20000, icon = 3 })
+  end
 end
-hopparch = load_settings()
+
+-- settings: shipped defaults (~/.config/hopparch/settings.lua), then your own
+-- ~/.config/hopparch/user.lua on top, key by key (load.lua, shared with the
+-- palette generator). A missing or broken user.lua means plain defaults; a
+-- typo or a bad value in it is reported and that setting keeps its default.
+-- Global, so profile.lua can read it too. `.user` marks a value you set yourself.
+local settings_dir = os.getenv("HOME") .. "/.config/hopparch/"
+local warnings
+hopparch, warnings = dofile(settings_dir .. "load.lua")(settings_dir, settings_dir .. "user.lua")
+for _, w in ipairs(warnings) do report(w) end
 local cfg = hopparch
 
 -- plain look: nothing that costs GPU time
@@ -158,7 +159,6 @@ hl.bind(mod .. " + SHIFT + Escape", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"
 -- screenshots: path of the saved file is copied (screenshot.sh)
 hl.bind(mod .. " + SHIFT + P",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
 hl.bind(mod .. " + SHIFT + S",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh region"), { description = "Screenshot: region" })
-hl.bind(mod .. " + SHIFT + CTRL + S", hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
 -- clipboard history
 hl.bind(mod .. " + CTRL + V", hl.dsp.exec_cmd(scripts .. "/clipboard.sh"), { description = "Clipboard history" })
 -- kaomoji: copied (paste with Ctrl+V); your own list first, folders, + add
@@ -270,25 +270,13 @@ hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(scripts .. "/cheatsheet.sh"),
 
 
 -- Optional extra files, loaded through pcall: a broken one must never take the
--- rest of the config down. Its error is shown on screen (Hyprland's own
--- notification, no mako needed) and kept with the time in
--- ~/.local/state/hopparch/hyprland-errors.log.
+-- rest of the config down. Its error is reported (see report() above).
 local function load_optional(path, what)
   local f = io.open(path)
   if not f then return end
   f:close()
   local ok, err = pcall(dofile, path)
-  if not ok then
-    local log = io.open(os.getenv("HOME") .. "/.local/state/hopparch/hyprland-errors.log", "a")
-    if log then
-      log:write(os.date("%Y-%m-%d %H:%M:%S"), "  ", tostring(err), "\n")
-      log:close()
-    end
-    if hl.notification then
-      pcall(hl.notification.create, { text = what .. " failed: " .. tostring(err),
-                                      timeout = 20000, icon = 3 })
-    end
-  end
+  if not ok then report(what .. " failed: " .. tostring(err)) end
 end
 
 local hypr = os.getenv("HOME") .. "/.config/hypr/"

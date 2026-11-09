@@ -21,7 +21,7 @@ curl -LO https://raw.githubusercontent.com/GraceHoppa/hopparch/main/install.sh
 bash install.sh
 ```
 
-It prints what it found, asks for a profile, a username, and a password, then shows one summary. Confirm with `y`. archinstall runs from that preset. `setup.sh` installs the desktop. Reboot, unlock the disk, and log in.
+It prints what it found, asks for a profile, a username, and a password, then shows one summary. Confirm with `y`. archinstall runs from that preset. `setup.sh` installs the desktop. Reboot, unlock the disk if you encrypted it, and log in.
 
 `bash install.sh --review` opens archinstall's menu before installing.
 
@@ -111,6 +111,7 @@ A file you edited is kept as `<file>.bak-<date>`, then replaced with the repo co
 
 ## How it's tested
 
+- **`dev/lint.sh`** runs in CI on every push: shellcheck on every script, and every Lua file must parse.
 - **`dev/check.sh`** runs in CI on every push, without root. It loads the installer's functions
   with the system commands faked and walks the dangerous paths: 26 checks. For example:
   - an EFI partition that won't mount is refused and nothing is formatted; one that already holds
