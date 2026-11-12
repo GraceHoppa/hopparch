@@ -140,7 +140,7 @@ A file you edited is kept as `<file>.bak-<date>`, then replaced with the repo co
 | `setup.sh` | Packages, `config/` into `~/.config`, `system/` into `/`. |
 | `config/` | The desktop: Hyprland, bar, terminal, menus. |
 | `profiles/` | The **full** and **minimal** overlays. |
-| `system/` | greetd, systemd, reflector, makepkg. |
+| `system/` | greetd, systemd (timers, zram swap values), reflector, makepkg. |
 | `dev/` | Checks and the test-VM helpers. Not installed. |
 
 Your own Hyprland binds and settings go in `~/.config/hypr/local.lua` (plain Lua, the

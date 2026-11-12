@@ -343,12 +343,45 @@ lts_kernel() {
   fi
 }
 
-# Upkeep once a week, no daemons: old package files cleaned (paccache keeps
-# the last 3 versions), mirror list refreshed (system/etc/xdg/reflector).
+# Upkeep, no daemons: old package files cleaned weekly (paccache keeps the
+# last 3 versions), mirror list refreshed weekly (system/etc/xdg/reflector),
+# and on a btrfs root every block read against its checksum once a month
+# (scrub: finds silent corruption before the file is needed).
+# The packaged timers wait a random time after they come due: up to 12 hours
+# for reflector, a week for the scrub. A machine that is on a few hours a day
+# never gets there (seen on the PC: no mirror refresh in 11 days), so the
+# drop-ins in system/etc/systemd/system/*.timer.d cut that to 10 minutes.
 # Parallel builds come from system/etc/makepkg.conf.d.
 upkeep() {
-  say "Weekly upkeep: package cache, mirror list"
+  say "Upkeep: package cache, mirror list, monthly disk check"
   systemctl enable paccache.timer reflector.timer
+  if [[ $(findmnt -no FSTYPE /) == btrfs ]]; then
+    systemctl enable btrfs-scrub@-.timer
+  fi
+}
+
+# Swap is zram (install.sh asks archinstall for it): compressed, in memory.
+# zram-generator stops at 4 GB unless told; half of the memory, 16 GB at most,
+# leaves room for a big build or a local model before the kernel starts
+# killing programs. A size you set yourself stays. The kernel's swap defaults
+# assume a slow disk, so system/etc/sysctl.d/99-hopparch.conf holds the values
+# for zram; without zram that file is taken out again. The size counts from
+# the next boot, the kernel values right away.
+zram_swap() {
+  local z=/etc/systemd/zram-generator.conf
+  if [[ ! -f $z ]]; then
+    rm -f /etc/sysctl.d/99-hopparch.conf
+    return 0
+  fi
+  say "Swap: zram up to half of the memory"
+  if ! grep -q '^[[:space:]]*zram-size' "$z"; then
+    if grep -q '^\[zram0\]' "$z"; then
+      sed -i '/^\[zram0\]/a zram-size = min(ram / 2, 16384)' "$z"
+    else
+      printf '\n[zram0]\nzram-size = min(ram / 2, 16384)\n' >>"$z"
+    fi
+  fi
+  if booted; then sysctl -q --system || true; fi
 }
 
 firewall() {
@@ -425,6 +458,7 @@ services
 leftovers
 lts_kernel
 upkeep
+zram_swap
 firewall
 dual_boot
 snapshots
