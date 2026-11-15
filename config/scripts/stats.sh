@@ -1,7 +1,7 @@
 #!/bin/bash
 # Numbers for the top bar's stats (waybar calls this every few seconds).
 #   stats.sh cpu-temp   e.g. "54°"       (nothing if no CPU sensor is found)
-#   stats.sh gpu        e.g. "GPU 30% 61°", "GPU off" (a sleeping laptop GPU)
+#   stats.sh gpu        e.g. "GPU 30% 61°", or "AMD 2% 57°  NV off" with two GPUs
 # Prints nothing when it has nothing to show, and waybar hides the module.
 # STATS_SYSROOT is only for tests: a fake /sys tree.
 sys=${STATS_SYSROOT:-}/sys
@@ -17,30 +17,37 @@ cpu_temp() {
   done
 }
 
-# An awake NVIDIA GPU first (it is the one doing the work on a desktop, or a
-# hybrid laptop's game), then an AMD GPU, else "GPU off" if only a sleeping
-# NVIDIA one exists, else nothing (Intel has no usage counter without root).
+# One entry per GPU, maker first when there are two (a hybrid laptop):
+#   "AMD 2% 57°  NV off"   one GPU: "GPU 30% 61°" as before.
+# NVIDIA states: "NV 30% 61°" in use, "NV idle" awake but unused (nvidia-smi on
+# every tick would keep it awake), "NV off" asleep, "NV VM" passed to a VM
+# (vfio-pci: Linux can't read it). Intel has no usage counter without root.
 gpu() {
-  local dev status hw t asleep=""
+  local dev drv t hw line out=()
   for dev in "$sys"/bus/pci/devices/*; do
-    [[ $(cat "$dev/class" 2>/dev/null) == 0x03* && $(cat "$dev/vendor" 2>/dev/null) == 0x10de ]] || continue
-    # a laptop's NVIDIA GPU sleeps to save battery, and nvidia-smi would wake it
-    status=$(cat "$dev/power/runtime_status" 2>/dev/null || echo active)
-    if [[ $status != active ]]; then asleep=1; continue; fi
-    command -v nvidia-smi >/dev/null || continue
-    # awake but nobody on it: nvidia-smi on every tick would keep it awake forever
-    if command -v fuser >/dev/null && ! fuser -s /dev/nvidia0 2>/dev/null; then asleep=1; continue; fi
-    nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null |
-      awk -F', *' 'NR == 1 { printf "GPU %d%% %d°\n", $1, $2 }' | grep . && return
+    [[ $(cat "$dev/class" 2>/dev/null) == 0x03* ]] || continue
+    case $(cat "$dev/vendor" 2>/dev/null) in
+      0x1002)
+        [[ -r $dev/gpu_busy_percent ]] || continue
+        t=""
+        for hw in "$dev"/hwmon/hwmon*; do [[ -r $hw/temp1_input ]] && t=" $(( $(<"$hw/temp1_input") / 1000 ))°"; done
+        out+=("AMD|$(<"$dev/gpu_busy_percent")%$t") ;;
+      0x10de)
+        drv=$(readlink "$dev/driver" 2>/dev/null); drv=${drv##*/}
+        if [[ $drv == vfio-pci ]]; then out+=("NV|VM")
+        elif [[ $(cat "$dev/power/runtime_status" 2>/dev/null || echo active) != active ]]; then out+=("NV|off")
+        elif command -v nvidia-smi >/dev/null && { ! command -v fuser >/dev/null || fuser -s /dev/nvidia[0-9]* 2>/dev/null; }; then
+          line=$(nvidia-smi -i "${dev##*/}" --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null |
+            awk -F', *' 'NR == 1 { printf "%d%% %d°", $1, $2 }')
+          out+=("NV|${line:-on}")
+        else out+=("NV|idle"); fi ;;
+    esac
   done
-  for dev in "$sys"/bus/pci/devices/*; do
-    [[ $(cat "$dev/vendor" 2>/dev/null) == 0x1002 && -r $dev/gpu_busy_percent ]] || continue
-    t=""
-    for hw in "$dev"/hwmon/hwmon*; do [[ -r $hw/temp1_input ]] && t=" $(( $(<"$hw/temp1_input") / 1000 ))°"; done
-    echo "GPU $(<"$dev/gpu_busy_percent")%$t"; return
-  done
-  [[ -n $asleep ]] && echo "GPU off"
-  return 0
+  (( ${#out[@]} )) || return 0
+  if (( ${#out[@]} == 1 )); then echo "GPU ${out[0]#*|}"; return; fi
+  local s="" e
+  for e in "${out[@]}"; do s+="${s:+  }${e%%|*} ${e#*|}"; done
+  echo "$s"
 }
 
 # Wi-Fi icon for the bar. Nothing if this machine has no wireless device,
