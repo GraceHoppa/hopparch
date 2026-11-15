@@ -1,4 +1,4 @@
-// hopparch top-bar stats: CPU 12% 54° | GPU 30% 61° | RAM 8.1G
+// hopparch top-bar stats: CPU 12% 54° | GPU 30% 61° (two GPUs: AMD 2% 57°  NV off) | RAM 8.1G
 // Its own file so the minimal profile can swap it for an empty group (no
 // polling at all on an old machine). Included by config.jsonc.
 {
