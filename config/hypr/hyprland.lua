@@ -146,44 +146,72 @@ hl.config({
 })
 
 
--- apps
-hl.bind(mod .. " + Return", hl.dsp.exec_cmd(terminal), { description = "Terminal" })
-hl.bind(mod .. " + D",      hl.dsp.exec_cmd(scripts .. "/launcher.sh"), { description = "Launcher (apps, settings, games)" })
-hl.bind(mod .. " + B",      hl.dsp.exec_cmd(browser), { description = "Browser" })
-hl.bind(mod .. " + F",      hl.dsp.exec_cmd(files), { description = "File manager" })
--- btop, almost the whole screen. btop.sh picks the cell count from this monitor.
-hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd(scripts .. "/btop.sh"),
-  { description = "System monitor (btop)" })
--- close.sh: closes the focused window, but never a game (full profile)
-hl.bind(mod .. " + Q",      hl.dsp.exec_cmd(scripts .. "/close.sh"), { description = "Close window (not a game)" })
-hl.bind(mod .. " + M",      hl.dsp.window.fullscreen({ mode = "fullscreen" }), { description = "Fullscreen" })
-hl.bind(mod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"), { description = "Reload Hyprland config" })
--- power menu from the keyboard (the bar's power icon opens the same one)
-hl.bind(mod .. " + SHIFT + E", hl.dsp.exec_cmd(scripts .. "/power-menu.sh"), { description = "Power menu" })
--- lock the screen (hyprlock.conf: black, one line of text, password)
-hl.bind(mod .. " + SHIFT + Escape", hl.dsp.exec_cmd("pidof hyprlock || hyprlock"), { description = "Lock screen" })
-
--- screenshots: path of the saved file is copied (screenshot.sh)
-hl.bind(mod .. " + SHIFT + P",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"), { description = "Screenshot: whole screen" })
-hl.bind(mod .. " + SHIFT + S",        hl.dsp.exec_cmd(scripts .. "/screenshot.sh region"), { description = "Screenshot: region" })
--- clipboard history
-hl.bind(mod .. " + CTRL + V", hl.dsp.exec_cmd(scripts .. "/clipboard.sh"), { description = "Clipboard history" })
--- kaomoji: copied (paste with Ctrl+V); your own list first, folders, + add
-hl.bind("CTRL + " .. mod .. " + period", hl.dsp.exec_cmd(scripts .. "/kaomoji.sh"),
-  { description = "Kaomoji" })
-
 -- volume keys: 5% steps up to 100%; with SUPER held up to 150% (software
 -- boost, can distort). locked = also work on the lock screen
 local vol = "wpctl set-volume "
 local sink = " @DEFAULT_AUDIO_SINK@ "
 local function media(d) return { locked = true, repeating = true, description = d } end
+
+-- Key binds. The keys are settings (settings.lua `binds`, yours in user.lua,
+-- HoppCong's Keybinds page); this is what each one does, by the same id.
+-- A bind set to false is off; one of your own runs its `exec`.
+local act = {
+  terminal     = { hl.dsp.exec_cmd(terminal) },
+  launcher     = { hl.dsp.exec_cmd(scripts .. "/launcher.sh") },
+  browser      = { hl.dsp.exec_cmd(browser) },
+  files        = { hl.dsp.exec_cmd(files) },
+  -- btop, almost the whole screen. btop.sh picks the cell count from this monitor.
+  btop         = { hl.dsp.exec_cmd(scripts .. "/btop.sh") },
+  -- close.sh: closes the focused window, but never a game (full profile)
+  close        = { hl.dsp.exec_cmd(scripts .. "/close.sh") },
+  fullscreen   = { hl.dsp.window.fullscreen({ mode = "fullscreen" }) },
+  reload       = { hl.dsp.exec_cmd("hyprctl reload") },
+  -- power menu from the keyboard (the bar's power icon opens the same one)
+  power_menu   = { hl.dsp.exec_cmd(scripts .. "/power-menu.sh") },
+  -- lock the screen (hyprlock.conf: black, one line of text, password)
+  lock         = { hl.dsp.exec_cmd("pidof hyprlock || hyprlock") },
+  -- screenshots: path of the saved file is copied (screenshot.sh)
+  shot_full    = { hl.dsp.exec_cmd(scripts .. "/screenshot.sh full") },
+  shot_region  = { hl.dsp.exec_cmd(scripts .. "/screenshot.sh region") },
+  clipboard    = { hl.dsp.exec_cmd(scripts .. "/clipboard.sh") },
+  -- kaomoji: copied (paste with Ctrl+V); your own list first, folders, + add
+  kaomoji      = { hl.dsp.exec_cmd(scripts .. "/kaomoji.sh") },
+  -- volume without volume keys (default SUPER+F9 down, SUPER+F10 up to 150%)
+  volume_down  = { hl.dsp.exec_cmd(vol .. sink .. "5%-"), media() },
+  volume_up    = { hl.dsp.exec_cmd(vol .. "-l 1.5" .. sink .. "5%+"), media() },
+  -- every open window in a list, the last used first: pick one to go there
+  -- (the mouse bar's window button opens the same list)
+  windows      = { hl.dsp.exec_cmd(scripts .. "/windows.sh") },
+  -- scratchpad (see below): show/hide it, send the focused window there
+  scratch      = { hl.dsp.workspace.toggle_special("scratch") },
+  scratch_send = { hl.dsp.window.move({ workspace = "special:scratch", follow = false }) },
+  -- cheatsheet: every bind with its description, the nvim keys, fish aliases
+  cheatsheet   = { hl.dsp.exec_cmd(scripts .. "/cheatsheet.sh") },
+}
+local B = cfg.binds
+for id, b in pairs(B) do
+  local a = act[id] or (b.exec and { hl.dsp.exec_cmd(b.exec) })
+  if b.type == "bind" and b[1] and a then
+    local opts = {}
+    for k, v in pairs(a[2] or {}) do opts[k] = v end
+    opts.description = b.label
+    hl.bind(b[1], a[1], opts)
+  end
+end
+-- the binds made in loops: their modifiers are settings ("mods"), the keys are not
+local function with(id, key) return B[id][1] and (B[id][1] .. " + " .. key) end
+
+-- HoppCong records a key combo in an empty submap: no bind runs, every key
+-- reaches HoppCong. It leaves the submap itself (at most 10 s); SUPER+Escape
+-- always gets you out too.
+hl.define_submap("hoppcong-keys", function()
+  hl.bind("SUPER + Escape", hl.dsp.submap("reset"))
+end)
+
 hl.bind("XF86AudioRaiseVolume",            hl.dsp.exec_cmd(vol .. "-l 1.0" .. sink .. "5%+"), media("Volume up"))
 hl.bind(mod .. " + XF86AudioRaiseVolume",  hl.dsp.exec_cmd(vol .. "-l 1.5" .. sink .. "5%+"), media("Volume up, up to 150%"))
 hl.bind("XF86AudioLowerVolume",            hl.dsp.exec_cmd(vol .. sink .. "5%-"), media("Volume down"))
 hl.bind(mod .. " + XF86AudioLowerVolume",  hl.dsp.exec_cmd(vol .. sink .. "5%-"), media("Volume down"))
--- the same without volume keys: SUPER+F9 down, SUPER+F10 up to 150%
-hl.bind(mod .. " + F9",                    hl.dsp.exec_cmd(vol .. sink .. "5%-"), media("Volume down"))
-hl.bind(mod .. " + F10",                   hl.dsp.exec_cmd(vol .. "-l 1.5" .. sink .. "5%+"), media("Volume up, up to 150%"))
 hl.bind("XF86AudioMute",    hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),   { locked = true, description = "Mute" })
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, description = "Mute microphone" })
 -- brightness keys: 5% steps, never below 1% (0 = a black screen on some laptops).
@@ -226,31 +254,38 @@ for _, d in ipairs({
   { "L", "right", step,  0 },
 }) do
   local key, dir, rx, ry = d[1], d[2], d[3], d[4]
-  hl.bind(mod .. " + " .. key,           hl.dsp.focus({ direction = dir }),
-          { description = "Focus " .. dir })
-  hl.bind(mod .. " + SHIFT + " .. key,   hl.dsp.window.move({ direction = dir }),
-          { description = "Move window " .. dir })
-  hl.bind(mod .. " + CTRL + " .. key,
-          hl.dsp.window.resize({ x = rx, y = ry, relative = true }),
-          { repeating = true, description = "Resize window " .. dir .. " (hold)" })
+  if B.focus_dir[1] then
+    hl.bind(with("focus_dir", key), hl.dsp.focus({ direction = dir }),
+            { description = "Focus " .. dir })
+  end
+  if B.move_dir[1] then
+    hl.bind(with("move_dir", key), hl.dsp.window.move({ direction = dir }),
+            { description = "Move window " .. dir })
+  end
+  if B.resize_dir[1] then
+    hl.bind(with("resize_dir", key), hl.dsp.window.resize({ x = rx, y = ry, relative = true }),
+            { repeating = true, description = "Resize window " .. dir .. " (hold)" })
+  end
 end
 
 -- mouse: SUPER + left drag moves, SUPER + right drag resizes
-hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true, description = "Move window (drag)" })
-hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Resize window (drag)" })
+if B.drag[1] then
+  hl.bind(with("drag", "mouse:272"), hl.dsp.window.drag(),   { mouse = true, description = "Move window (drag)" })
+  hl.bind(with("drag", "mouse:273"), hl.dsp.window.resize(), { mouse = true, description = "Resize window (drag)" })
+end
 
 
 -- workspaces 1-9: go there, +SHIFT sends the window there
 for i = 1, 9 do
-  hl.bind(mod .. " + " .. i,         hl.dsp.focus({ workspace = i }),
-          { description = "Go to workspace " .. i })
-  hl.bind(mod .. " + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }),
-          { description = "Send window to workspace " .. i })
+  if B.ws_go[1] then
+    hl.bind(with("ws_go", i), hl.dsp.focus({ workspace = i }),
+            { description = "Go to workspace " .. i })
+  end
+  if B.ws_send[1] then
+    hl.bind(with("ws_send", i), hl.dsp.window.move({ workspace = i }),
+            { description = "Send window to workspace " .. i })
+  end
 end
-
--- every open window in a list, the last used first: pick one to go there
--- (the mouse bar's window button opens the same list)
-hl.bind(mod .. " + Tab", hl.dsp.exec_cmd(scripts .. "/windows.sh"), { description = "Windows list" })
 
 -- scratchpad: a hidden workspace shown over the current one. SUPER+S
 -- shows/hides it; whenever it is empty, showing it opens a terminal in it.
@@ -267,13 +302,6 @@ hl.window_rule({
   match     = { class = "^(scratchpad)$" },
   workspace = "special:scratch silent",
 })
-hl.bind(mod .. " + S", hl.dsp.workspace.toggle_special("scratch"), { description = "Scratchpad show/hide" })
-hl.bind(mod .. " + CTRL + S", hl.dsp.window.move({ workspace = "special:scratch", follow = false }),
-        { description = "Send window to the scratchpad" })
-
-
--- cheatsheet: every bind above with its description, the nvim keys, fish aliases
-hl.bind(mod .. " + SHIFT + slash", hl.dsp.exec_cmd(scripts .. "/cheatsheet.sh"), { description = "This cheatsheet" })
 
 
 -- Optional extra files, loaded through pcall: a broken one must never take the

@@ -65,6 +65,48 @@ return {
       pcmanfm  = { label = "PCManFM",  cmd = "pcmanfm" },
       nemo     = { label = "Nemo",     cmd = "nemo" },
     } },
+  -- Key binds: the combo in Hyprland's own form ("SUPER + SHIFT + S"); what each
+  -- one does is in hyprland.lua under the same id. `mods` = only the modifiers
+  -- of binds made in a loop (the keys are fixed: `keys`). In user.lua:
+  --   binds = { terminal = "SUPER + T",          -- another combo
+  --             shot_full = false,               -- off
+  --             my_obs = { "SUPER + O", exec = "obs", label = "OBS" } }  -- your own
+  -- Two binds on one combo: the first in bind_order keeps it, the other is off
+  -- (and reported). Volume, brightness and mute keys stay fixed in hyprland.lua.
+  bind_order = { "terminal", "launcher", "browser", "files", "close", "fullscreen",
+                 "windows", "scratch", "scratch_send", "focus_dir", "move_dir",
+                 "resize_dir", "drag", "ws_go", "ws_send", "shot_full", "shot_region",
+                 "clipboard", "kaomoji", "volume_down", "volume_up", "btop", "lock",
+                 "power_menu", "reload", "cheatsheet" },
+  binds = {
+    terminal     = { "SUPER + Return",        type = "bind", label = "Terminal" },
+    launcher     = { "SUPER + D",             type = "bind", label = "Launcher (apps, settings, games)" },
+    browser      = { "SUPER + B",             type = "bind", label = "Browser" },
+    files        = { "SUPER + F",             type = "bind", label = "File manager" },
+    close        = { "SUPER + Q",             type = "bind", label = "Close window (not a game)" },
+    fullscreen   = { "SUPER + M",             type = "bind", label = "Fullscreen" },
+    windows      = { "SUPER + Tab",           type = "bind", label = "Windows list" },
+    scratch      = { "SUPER + S",             type = "bind", label = "Scratchpad show/hide" },
+    scratch_send = { "SUPER + CTRL + S",      type = "bind", label = "Send window to the scratchpad" },
+    focus_dir    = { "SUPER",                 type = "mods", keys = { "H", "J", "K", "L" }, label = "Focus window (+ h j k l)" },
+    move_dir     = { "SUPER + SHIFT",         type = "mods", keys = { "H", "J", "K", "L" }, label = "Move window (+ h j k l)" },
+    resize_dir   = { "SUPER + CTRL",          type = "mods", keys = { "H", "J", "K", "L" }, label = "Resize window, hold (+ h j k l)" },
+    drag         = { "SUPER",                 type = "mods", keys = { "mouse:272", "mouse:273" }, label = "Move / resize window (+ left / right drag)" },
+    ws_go        = { "SUPER",                 type = "mods", keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, label = "Go to workspace (+ 1-9)" },
+    ws_send      = { "SUPER + SHIFT",         type = "mods", keys = { "1", "2", "3", "4", "5", "6", "7", "8", "9" }, label = "Send window to workspace (+ 1-9)" },
+    shot_full    = { "SUPER + SHIFT + P",     type = "bind", label = "Screenshot: whole screen" },
+    shot_region  = { "SUPER + SHIFT + S",     type = "bind", label = "Screenshot: region" },
+    clipboard    = { "SUPER + CTRL + V",      type = "bind", label = "Clipboard history" },
+    kaomoji      = { "CTRL + SUPER + period", type = "bind", label = "Kaomoji" },
+    volume_down  = { "SUPER + F9",            type = "bind", label = "Volume down" },
+    volume_up    = { "SUPER + F10",           type = "bind", label = "Volume up, up to 150%" },
+    btop         = { "CTRL + ALT + Delete",   type = "bind", label = "System monitor (btop)" },
+    lock         = { "SUPER + SHIFT + Escape", type = "bind", label = "Lock screen" },
+    power_menu   = { "SUPER + SHIFT + E",     type = "bind", label = "Power menu" },
+    reload       = { "SUPER + SHIFT + R",     type = "bind", label = "Reload Hyprland config" },
+    cheatsheet   = { "SUPER + SHIFT + slash", type = "bind", label = "This cheatsheet" },
+  },
+
   -- Hyprland's own tiling layouts (general.layout); no cmd, always offered
   layout = { "dwindle", type = "choice", label = "Window layout",
     option_order = { "dwindle", "master", "scrolling", "monocle" },
