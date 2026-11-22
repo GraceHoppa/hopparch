@@ -1,10 +1,6 @@
 -- hopparch -- Hyprland config (Lua, Hyprland >= 0.55). Reload: SUPER+SHIFT+R
 
 local mod      = "SUPER"
--- -1 = one kitty process for all windows: ~15 MB per extra window instead of ~160
-local terminal = "kitty -1"
-local browser  = "firefox"
-local files    = "thunar"
 local scripts  = os.getenv("HOME") .. "/.config/scripts"
 
 
@@ -92,13 +88,24 @@ hopparch, warnings = dofile(settings_dir .. "load.lua")(settings_dir, settings_d
 for _, w in ipairs(warnings) do report(w) end
 local cfg = hopparch
 
+-- the default apps (settings.lua; HoppCong's Apps page). Global, so the mouse
+-- bar's buttons run the same ones: hyprctl dispatch 'hl.dsp.exec_cmd(apps.browser)'
+local function app(name) return cfg[name].options[cfg[name][1]] end
+apps = {
+  terminal = app("terminal").cmd,
+  scratch  = app("terminal").scratch,   -- the same terminal, window class "scratchpad"
+  browser  = app("browser").cmd,
+  files    = app("files").cmd,
+}
+local terminal, browser, files = apps.terminal, apps.browser, apps.files
+
 -- plain look: nothing that costs GPU time
 hl.config({
   general = {
     gaps_in = cfg.gaps_in[1],
     gaps_out = cfg.gaps_out[1],
     border_size = cfg.border_size[1],
-    layout = "dwindle",
+    layout = cfg.layout[1],
     col = {
       -- 0xyc: cream = focused, dark grey = the rest
       active_border   = "rgba(" .. cfg.palette.focus[1] .. "ff)",
@@ -252,7 +259,7 @@ hl.bind(mod .. " + Tab", hl.dsp.exec_cmd(scripts .. "/windows.sh"), { descriptio
 -- kitty already running, so Hyprland can't tell it was started for here.
 hl.on("workspace.created", function(ws)
   if ws.name == "special:scratch" and ws.is_empty then
-    hl.exec_cmd(terminal .. " --class scratchpad")
+    hl.exec_cmd(apps.scratch)
   end
 end)
 hl.window_rule({

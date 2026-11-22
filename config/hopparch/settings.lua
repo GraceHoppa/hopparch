@@ -5,6 +5,7 @@ return {
   -- the order the settings GUI lists the palette in (Lua tables have none)
   palette_order = { "bg", "text", "focus", "dim", "sel", "muted", "alert", "accent", "white" },
   look_order = { "gaps_in", "gaps_out", "border_size", "rounding" },
+  apps_order = { "terminal", "browser", "files", "layout" },
   -- whole-palette presets the GUI offers; picking one fills all palette colours
   scheme_order = { "0xyc", "paper", "amber", "nord", "gruvbox", "mono" },
   schemes = {
@@ -31,4 +32,46 @@ return {
   border_size = { 2, type = "int", min = 0, max = 10, label = "Border width" },
   -- 0 in the minimal profile; `full` is the full profile's default (user.lua wins)
   rounding    = { 0, full = 6, type = "int", min = 0, max = 30, label = "Corner rounding" },
+
+  -- choice: the value is one key of `options`; `option_order` is the GUI's order.
+  -- The GUI lists only the apps that are installed (the first word of cmd).
+  -- scratch = the terminal started in the scratchpad (SUPER+S), with the window
+  -- class "scratchpad": each terminal sets it with its own flag. Only kitty is
+  -- tested; the others are from their docs.
+  terminal = { "kitty", type = "choice", label = "Terminal",
+    option_order = { "kitty", "foot", "alacritty", "wezterm", "ghostty" },
+    options = {
+      -- -1 = one kitty process for all windows: ~15 MB per extra window instead of ~160
+      kitty     = { label = "kitty",     cmd = "kitty -1",  scratch = "kitty -1 --class scratchpad" },
+      foot      = { label = "foot",      cmd = "foot",      scratch = "foot --app-id scratchpad" },
+      alacritty = { label = "Alacritty", cmd = "alacritty", scratch = "alacritty --class scratchpad" },
+      wezterm   = { label = "WezTerm",   cmd = "wezterm",   scratch = "wezterm start --class scratchpad" },
+      ghostty   = { label = "Ghostty",   cmd = "ghostty",   scratch = "ghostty --class=scratchpad" },
+    } },
+  browser = { "firefox", type = "choice", label = "Browser",
+    option_order = { "firefox", "chromium", "librewolf", "brave" },
+    options = {
+      firefox   = { label = "Firefox",   cmd = "firefox" },
+      chromium  = { label = "Chromium",  cmd = "chromium" },
+      librewolf = { label = "LibreWolf", cmd = "librewolf" },
+      brave     = { label = "Brave",     cmd = "brave" },
+    } },
+  files = { "thunar", type = "choice", label = "File manager",
+    option_order = { "thunar", "nautilus", "dolphin", "pcmanfm", "nemo" },
+    options = {
+      thunar   = { label = "Thunar",   cmd = "thunar" },
+      nautilus = { label = "Nautilus", cmd = "nautilus" },
+      dolphin  = { label = "Dolphin",  cmd = "dolphin" },
+      pcmanfm  = { label = "PCManFM",  cmd = "pcmanfm" },
+      nemo     = { label = "Nemo",     cmd = "nemo" },
+    } },
+  -- Hyprland's own tiling layouts (general.layout); no cmd, always offered
+  layout = { "dwindle", type = "choice", label = "Window layout",
+    option_order = { "dwindle", "master", "scrolling", "monocle" },
+    options = {
+      dwindle   = { label = "Dwindle (each new window splits the last)" },
+      master    = { label = "Master (one big window + a stack)" },
+      scrolling = { label = "Scrolling (a row of columns)" },
+      monocle   = { label = "Monocle (one window at a time)" },
+    } },
 }

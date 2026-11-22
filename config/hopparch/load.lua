@@ -20,6 +20,10 @@ local function bad(entry, v)
     if (entry.min and v < entry.min) or (entry.max and v > entry.max) then
       return "must be " .. tostring(entry.min) .. " to " .. tostring(entry.max)
     end
+  elseif entry.type == "choice" then
+    if type(v) ~= "string" or not entry.options[v] then
+      return "must be one of: " .. table.concat(entry.option_order, ", ")
+    end
   end
 end
 

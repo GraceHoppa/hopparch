@@ -19,7 +19,7 @@
   "custom/kbd": { "format": "󰌌", "tooltip-format": "On-screen keyboard", "on-click": "pkill --signal RTMIN -x wvkbd-deskintl || hyprctl dispatch 'hl.dsp.exec_cmd(\"wvkbd-deskintl -L 280\")'" },
   "hyprland/language": { "format": "{short}", "tooltip-format": "Keyboard layout: {long} (click to switch)", "on-click": "hyprctl switchxkblayout all next" },
   "custom/scratch": { "format": "󰆍", "tooltip-format": "Scratchpad (SUPER+S)", "on-click": "hyprctl dispatch 'hl.dsp.workspace.toggle_special(\"scratch\")'" },
-  "custom/browser": { "format": "󰖟", "tooltip-format": "Browser (SUPER+B)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"firefox\")'" },
+  "custom/browser": { "format": "󰖟", "tooltip-format": "Browser (SUPER+B)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(apps.browser)'" },
   "custom/settings": { "format": "󰒓", "tooltip-format": "Settings (HoppCong)","on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"$HOME/.config/scripts/settings.sh\")'" },
   "custom/windows": { "format": "󰖲", "tooltip-format": "Windows list (SUPER+Tab)", "on-click": "hyprctl dispatch 'hl.dsp.exec_cmd(\"$HOME/.config/scripts/windows.sh\")'" },
   "custom/prev": { "format": "◀", "tooltip-format": "Previous workspace", "on-click": "$HOME/.config/scripts/workspace.sh prev" },
