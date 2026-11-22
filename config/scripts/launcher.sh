@@ -3,8 +3,13 @@
 # Fuzzel's own app list can't search a NoDisplay entry, so this builds the list and
 # uses its dmenu mode. Fuzzel can't hide a line until you type, so those apps sit
 # below the normal ones: out of the way, but there if you scroll down.
-#   launcher.sh        the launcher
-#   launcher.sh list   only print the list
+#   launcher.sh            the launcher
+#   launcher.sh list       only print the list
+#   LAUNCHER_ALL=1 launcher.sh list   with the hidden ones too (HoppCong's Search
+#                          page; a variable, not an argument, so an older launcher.sh
+#                          still only prints, never opens the launcher)
+# Hidden = removed in HoppCong's Search page: ~/.config/hopparch/hidden.list, one
+# id per line, a file of your own (sync never writes it).
 shopt -s nullglob
 
 entries() {
@@ -56,18 +61,31 @@ for row in "${rows[@]}"; do
   files[${id%.desktop}]=$path
 done
 
+declare -A hidden
+if [[ -f $HOME/.config/hopparch/hidden.list ]]; then
+  while read -r id; do
+    [[ -n $id && $id != \#* ]] && hidden[$id]=1
+  done <"$HOME/.config/hopparch/hidden.list"
+fi
+
 # Columns: name, id, words to search. "\0icon\x1f<name>" = the line's icon. The line
 # holds the id and not the path: a path's letters would match almost any search.
+#   list all = with the hidden ones
 list() {
   local name path words icon id
   for row in "${rows[@]}"; do
     IFS=$'\t' read -r _ name path words icon <<<"$row"
     id=${path##*/}
-    printf '%s\t%s\t%s\0icon\x1f%s\n' "$name" "${id%.desktop}" "$words" "$icon"
+    id=${id%.desktop}
+    [[ ${1:-} != all && -n ${hidden[$id]:-} ]] && continue
+    printf '%s\t%s\t%s\0icon\x1f%s\n' "$name" "$id" "$words" "$icon"
   done
 }
 
-[[ ${1:-} == list ]] && { list; exit 0; }
+if [[ ${1:-} == list ]]; then
+  if [[ -n ${LAUNCHER_ALL:-} ]]; then list all; else list; fi
+  exit 0
+fi
 
 # The name shows, the id comes back. match-mode=exact: fuzzel's default fzf mode also
 # lists whatever matches a part of what you typed. Its own cache keeps the most used
