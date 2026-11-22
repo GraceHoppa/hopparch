@@ -63,7 +63,7 @@ done
 
 declare -A hidden
 if [[ -f $HOME/.config/hopparch/hidden.list ]]; then
-  while read -r id; do
+  while read -r id || [[ -n $id ]]; do
     [[ -n $id && $id != \#* ]] && hidden[$id]=1
   done <"$HOME/.config/hopparch/hidden.list"
 fi
