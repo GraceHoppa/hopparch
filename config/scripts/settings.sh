@@ -1,9 +1,9 @@
 #!/bin/bash
-# Settings without a settings app: the Wi-Fi, Bluetooth, Brightness, App volume,
-# Power mode, Battery, Devices and Specs entries in SUPER+D, and the mouse bar's
-# settings button (no argument = a menu of all of them). Every screen is a
-# fuzzel list.
-#   settings.sh [wifi|bluetooth|brightness|volume|power|battery|devices|specs]
+# The quick settings: the Wi-Fi, Bluetooth, Brightness, App volume, Power mode,
+# Battery, Devices and Specs entries in SUPER+D. Every screen is a fuzzel list.
+# No argument (the mouse bar's settings button) opens HoppCong, the settings
+# app, if it is installed, else the menu of all of these.
+#   settings.sh [menu|wifi|bluetooth|brightness|volume|power|battery|devices|specs]
 set -euo pipefail
 # *( ) patterns (bt_pair strips colour codes with one)
 shopt -s extglob
@@ -283,12 +283,19 @@ entries() {
 }
 
 
+menu() {
+  case $(entries | cut -d: -f1 | pick settings --lines 8) in
+    Wi-Fi) wifi ;; Bluetooth) bluetooth ;; Brightness) brightness ;; "App volume") volume ;;
+    "Power mode") power ;; Battery) battery ;; Devices) devices ;; Specs) specs ;;
+  esac
+}
+
+
 case ${1:-} in
-  wifi|bluetooth|brightness|volume|power|battery|devices|specs|entries) "$1" ;;
+  menu|wifi|bluetooth|brightness|volume|power|battery|devices|specs|entries) "$1" ;;
   "")
-    case $(entries | cut -d: -f1 | pick settings --lines 8) in
-      Wi-Fi) wifi ;; Bluetooth) bluetooth ;; Brightness) brightness ;; "App volume") volume ;;
-      "Power mode") power ;; Battery) battery ;; Devices) devices ;; Specs) specs ;;
-    esac ;;
-  *) echo "usage: settings.sh [wifi|bluetooth|brightness|volume|power|battery|devices|specs|entries]" >&2; exit 2 ;;
+    # Hyprland's PATH has no ~/.local/bin, where HoppCong's `make install` puts it
+    hc=$(PATH=$HOME/.local/bin:$PATH command -v hoppcong) && exec "$hc"
+    menu ;;
+  *) echo "usage: settings.sh [menu|wifi|bluetooth|brightness|volume|power|battery|devices|specs|entries]" >&2; exit 2 ;;
 esac
