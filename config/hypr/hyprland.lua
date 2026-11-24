@@ -40,6 +40,7 @@ end)
 -- the iGPU: there these would break video decoding (VA-API). Checked at every
 -- start, so a changed card needs nothing redone.
 local function nvidia_draws_the_screen()
+  if os.getenv("AQ_DRM_DEVICES") then return false end  -- VM mode / hybrid: Hyprland is on the iGPU
   local p = io.popen("grep -l '^connected$' /sys/class/drm/card*-eDP-*/status /sys/class/drm/card*-LVDS-*/status" ..
                      " /sys/class/drm/card*-DSI-*/status 2>/dev/null; grep -l '^1$' /sys/bus/pci/devices/*/boot_vga 2>/dev/null")
   local first = p and p:read("*l")
