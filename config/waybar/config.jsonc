@@ -6,7 +6,7 @@
   // stats.jsonc defines "group/stats" (CPU, GPU, RAM); the minimal profile empties it
   "include": ["~/.config/waybar/stats.jsonc"],
   "modules-left": ["custom/mousebar", "wireplumber", "group/stats", "custom/wifi"],
-  "modules-center": ["wlr/taskbar"],
+  "modules-center": ["custom/rec", "wlr/taskbar"],
   "modules-right": ["tray", "clock", "custom/ecoflow", "battery#bat0", "battery#bat1", "custom/power"],
 
   // open windows: icon only, one row. Middle click closes.
@@ -54,6 +54,15 @@
     "exec": "$HOME/.config/scripts/stats.sh wifi",
     "return-type": "json",
     "interval": 5
+  },
+
+  // red REC badge while something records (any script touches $XDG_RUNTIME_DIR/hopparch-rec,
+  // then pkill -RTMIN+8 waybar for an instant update). Hidden otherwise.
+  "custom/rec": {
+    "exec": "[ -e \"$XDG_RUNTIME_DIR/hopparch-rec\" ] && echo '{\"text\":\"● REC\",\"class\":\"on\"}' || echo '{\"text\":\"\"}'",
+    "return-type": "json",
+    "interval": 5,
+    "signal": 8
   },
 
   // EcoFlow power station from EcoFlow's cloud, once a minute. Hidden until

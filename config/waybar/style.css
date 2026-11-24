@@ -48,3 +48,6 @@ window#waybar {
 #custom-power:hover {
   background: #3a3a38;
 }
+
+/* recording (custom/rec in config.jsonc) */
+#custom-rec.on { background: #c01c28; color: #ffffff; font-weight: bold; padding: 0 10px; }
